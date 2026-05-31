@@ -1,0 +1,21 @@
+#!/usr/bin/env bash
+# vivaldi-open <url> — focus the existing Vivaldi window (searched across all
+# niri workspaces) and open <url> in a new tab there. If Vivaldi isn't running,
+# open it in a new window instead.
+set -euo pipefail
+
+url="${1:?usage: vivaldi-open <url>}"
+
+vid="$(niri msg --json windows | python3 -c '
+import json, sys
+for w in json.load(sys.stdin):
+    if "vivaldi" in (w.get("app_id") or "").lower():
+        print(w["id"]); break
+')"
+
+if [ -n "$vid" ]; then
+    niri msg action focus-window --id "$vid"
+    vivaldi "$url" >/dev/null 2>&1 &              # new tab in the focused window
+else
+    vivaldi --new-window "$url" >/dev/null 2>&1 & # nothing running → new window
+fi

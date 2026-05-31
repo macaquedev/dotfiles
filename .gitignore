@@ -1,0 +1,31 @@
+# This repo only tracks files placed under it by ./sync. As a safety net,
+# hard-block anything secret-bearing or machine-specific from ever entering.
+
+# --- iNiR runtime state (where real API keys + chat history live) ---
+**/.local/state/**
+**/states.json
+**/installed_listfile
+**/lastSession.json
+**/*.lock
+**/*.old
+
+# --- generic secret stores ---
+**/.env
+**/.env.*
+**/*.pem
+**/*.key
+**/id_rsa*
+**/id_ed25519*
+**/.authinfo*
+**/.netrc
+**/.npmrc
+**/.git-credentials
+**/secrets.*
+**/credentials*
+
+# --- caches / build junk ---
+**/__pycache__/
+**/*.pyc
+**/.venv/
+**/node_modules/
+**/.DS_Store

@@ -1,0 +1,25 @@
+#!/bin/sh
+# Conditional niri navigation:
+#   - If the focused window is NOT at the edge of its column stack, focus the
+#     window above/below (focus-window-up/down).
+#   - If it IS at the edge (focus-window did nothing), switch workspace instead.
+#
+# Usage: niri-stack-nav up|down
+set -eu
+
+dir=${1:?usage: niri-stack-nav up|down}
+case "$dir" in
+	up | down) ;;
+	*)
+		echo "usage: niri-stack-nav up|down" >&2
+		exit 2
+		;;
+esac
+
+before=$(niri msg --json focused-window | jq -r '.id // empty')
+niri msg action "focus-window-$dir" >/dev/null 2>&1 || true
+after=$(niri msg --json focused-window | jq -r '.id // empty')
+
+if [ "$before" = "$after" ]; then
+	niri msg action "focus-workspace-$dir" >/dev/null 2>&1 || true
+fi

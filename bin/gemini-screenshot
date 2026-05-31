@@ -1,0 +1,57 @@
+#!/usr/bin/env bash
+#
+# gemini-screenshot — select a screen region, then hand it to Gemini:
+#   1. drag-select a region; the PNG goes to the clipboard
+#   2. find the existing Vivaldi window (across all workspaces), focus it, and
+#      open gemini.google.com in a new tab there (new window only as fallback)
+#   3. wait for the page, paste the image, type a prompt, press Enter
+#
+# This is GUI automation and is therefore brittle by nature. It depends on:
+#   • being logged into Google in Vivaldi (else you land on a sign-in page)
+#   • Gemini auto-focusing its prompt box on load
+#   • the page finishing loading within LOAD_WAIT seconds
+#   • you NOT moving the mouse during the run (focus-follows-mouse could steal
+#     keyboard focus from the Vivaldi window mid-automation)
+#
+# Tune the waits via env if your machine/network is slower:
+#   GEMINI_LOAD_WAIT=8 gemini-screenshot
+set -euo pipefail
+
+URL="https://gemini.google.com/"
+PROMPT="Please interpret this image and respond"
+LOAD_WAIT="${GEMINI_LOAD_WAIT:-1}"    # seconds to wait for Gemini to load
+PASTE_WAIT="${GEMINI_PASTE_WAIT:-2}"  # seconds for the pasted image to attach
+
+# 1) Region screenshot → clipboard as PNG. Cancelling slurp (Esc) aborts quietly.
+region="$(slurp)" || exit 0
+grim -g "$region" - | wl-copy --type image/png
+
+# 2) Find an existing Vivaldi window across all workspaces and focus it, then
+#    open Gemini as a new tab in it. If none exists, fall back to a new window.
+vid="$(niri msg --json windows | python3 -c '
+import json, sys
+for w in json.load(sys.stdin):
+    if "vivaldi" in (w.get("app_id") or "").lower():
+        print(w["id"]); break
+')"
+
+if [ -n "$vid" ]; then
+    niri msg action focus-window --id "$vid"
+    sleep 0.3                                     # let focus/cursor settle
+    vivaldi "$URL" >/dev/null 2>&1 &              # new tab in the focused window
+else
+    vivaldi --new-window "$URL" >/dev/null 2>&1 & # no Vivaldi running → start it
+fi
+
+# 3) Wait for the page to load.
+sleep "$LOAD_WAIT"
+
+# 4) Paste the image (Ctrl+V) into the assumed-focused prompt box.
+wtype -M ctrl -k v -m ctrl
+
+# 5) Let Gemini attach/preview the image.
+sleep "$PASTE_WAIT"
+
+# 6) Type the prompt and send.
+wtype "$PROMPT"
+wtype -k Return

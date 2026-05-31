@@ -1,0 +1,147 @@
+#!/usr/bin/env python3
+"""niri-monocle — auto-maximize the lone window in a workspace.
+
+When a workspace holds exactly one tiled (non-floating) window, that window's
+column is maximized so it fills the work area (the top bar stays visible). As
+soon as a second tiled window appears, the maximize is undone and niri's
+default scrollable-tiling layout resumes.
+
+Why a daemon and not config: niri has no "maximize when alone" setting.
+`maximize-column` acts on the *focused* column and is a toggle with no
+state read-back (the Window IPC struct exposes no is_maximized/is_fullscreen),
+so this daemon tracks its own intent. It only ever maximizes the focused lone
+window, and reconciliation is idempotent so niri's own follow-up events
+(emitted in response to our actions) converge instead of looping.
+
+Known limitation: if you manually un-maximize a lone window (e.g. via a
+keybind), the daemon still believes it is maximized and won't re-apply until
+the window count changes.
+"""
+import json
+import subprocess
+import sys
+
+windows = {}        # id -> {"ws": int | None, "floating": bool}
+focused = None      # focused window id (or None)
+maximized = set()   # window ids this daemon has maximized
+
+
+def action(*args):
+    subprocess.run(
+        ["niri", "msg", "action", *args],
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+    )
+
+
+def tiled_by_ws():
+    out = {}
+    for wid, w in windows.items():
+        if w["floating"] or w["ws"] is None:
+            continue
+        out.setdefault(w["ws"], []).append(wid)
+    return out
+
+
+def reconcile():
+    by_ws = tiled_by_ws()
+
+    # 1) Undo maximize wherever the window is no longer the sole tiled window.
+    for wid in list(maximized):
+        w = windows.get(wid)
+        if w is None:                       # window closed — nothing to undo
+            maximized.discard(wid)
+            continue
+        if len(by_ws.get(w["ws"], [])) != 1:
+            if focused == wid:
+                action("maximize-column")
+            else:
+                # Briefly focus the column to toggle it, then restore focus.
+                # The other window is in the same workspace, so this never
+                # switches workspaces — just a focus flicker.
+                action("focus-window", "--id", str(wid))
+                action("maximize-column")
+                if focused is not None and focused in windows:
+                    action("focus-window", "--id", str(focused))
+            maximized.discard(wid)
+
+    # 2) Maximize a sole, focused, tiled window.
+    if focused is not None:
+        w = windows.get(focused)
+        if (
+            w
+            and not w["floating"]
+            and w["ws"] is not None
+            and len(by_ws.get(w["ws"], [])) == 1
+            and focused not in maximized
+        ):
+            action("maximize-column")
+            maximized.add(focused)
+
+
+def upsert(win):
+    windows[win["id"]] = {
+        "ws": win.get("workspace_id"),
+        "floating": bool(win.get("is_floating")),
+    }
+
+
+def handle(ev):
+    global focused
+
+    if "WindowsChanged" in ev:
+        windows.clear()
+        focused = None
+        for win in ev["WindowsChanged"]["windows"]:
+            upsert(win)
+            if win.get("is_focused"):
+                focused = win["id"]
+        reconcile()
+
+    elif "WindowOpenedOrChanged" in ev:
+        win = ev["WindowOpenedOrChanged"]["window"]
+        upsert(win)
+        if win.get("is_focused"):
+            focused = win["id"]
+        reconcile()
+
+    elif "WindowClosed" in ev:
+        wid = ev["WindowClosed"]["id"]
+        windows.pop(wid, None)
+        maximized.discard(wid)
+        if focused == wid:
+            focused = None
+        reconcile()
+
+    elif "WindowFocusChanged" in ev:
+        focused = ev["WindowFocusChanged"]["id"]    # may be None
+        reconcile()
+
+    # All other events (layouts, workspaces, keyboard, casts, …) are ignored:
+    # they cannot change a workspace's tiled-window count.
+
+
+def main():
+    proc = subprocess.Popen(
+        ["niri", "msg", "--json", "event-stream"],
+        stdout=subprocess.PIPE,
+        text=True,
+    )
+    for line in proc.stdout:
+        line = line.strip()
+        if not line:
+            continue
+        try:
+            ev = json.loads(line)
+        except json.JSONDecodeError:
+            continue
+        try:
+            handle(ev)
+        except Exception as exc:            # never let one bad event kill us
+            print(f"niri-monocle: {exc}", file=sys.stderr)
+
+    return proc.wait()
+
+
+if __name__ == "__main__":
+    sys.exit(main())

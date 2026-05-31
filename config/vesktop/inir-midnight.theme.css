@@ -1,0 +1,103 @@
+/**
+ * @name iNiR Midnight
+ * @description iNiR Midnight Discord theme with Material You colors.
+ * @author iNiR (Material palette injection)
+ * @version 2.2.0
+ * @source https://github.com/end-4/iNiR
+ */
+
+/*
+ * Base theme import:
+ * - Prefer your local copy (if you have it in the same folder).
+ * - Fallback to remote so the theme works on fresh installs.
+ */
+@import url('midnight-discord.local.css');
+@import url('https://refact0r.github.io/midnight-discord/build/midnight.css');
+
+/* Material You Palette - Auto-generated */
+:root, :root:root, body, #app-mount {
+    --accent-1: #aee1ee;
+    --accent-2: #84d2e5;
+    --accent-3: #6fcae1;
+    --accent-4: #5ac3dc;
+    --accent-5: #45bbd8;
+    --accent-new: #84d2e5;
+    --active: rgba(132, 210, 229, 0.20);
+    --active-2: rgba(132, 210, 229, 0.30);
+    --bg-1: #252b2d;
+    --bg-2: #1b2122;
+    --bg-3: #171d1e;
+    --bg-4: #0f1416;
+    --bg-floating: #303637;
+    --blue-1: #e2ecee;
+    --blue-2: #ccdce1;
+    --blue-3: #b2cbd2;
+    --blue-4: #98bac3;
+    --blue-5: #82aab6;
+    --border: rgba(137, 146, 149, 0.22);
+    --border-hover: rgba(135, 168, 177, 0.50);
+    --border-light: rgba(137, 146, 149, 0.12);
+    --brand-360: #a6deec;
+    --brand-400: #95d8e9;
+    --brand-500: #84d2e5;
+    --brand-560: #6bc9e0;
+    --brand-600: #51c0da;
+    --button-border: rgba(137, 146, 149, 0.16);
+    --colors: on;
+    --dnd: #ffb4ab;
+    --green-1: #f9f9fd;
+    --green-2: #dde1f5;
+    --green-3: #bec5eb;
+    --green-4: #9fa9e1;
+    --green-5: #8491d9;
+    --hover: rgba(132, 210, 229, 0.10);
+    --idle: #b2cbd2;
+    --mention: linear-gradient(to right, color-mix(in hsl, #84d2e5, transparent 90%) 40%, transparent);
+    --mention-hover: linear-gradient(to right, color-mix(in hsl, #84d2e5, transparent 95%) 40%, transparent);
+    --message-hover: rgba(132, 210, 229, 0.08);
+    --offline: #bfc8cb;
+    --online: #bec5eb;
+    --orange-1: #dce9ee;
+    --orange-2: #c4dae2;
+    --orange-3: #a9c9d4;
+    --orange-4: #8eb8c6;
+    --orange-5: #76a9bb;
+    --purple-1: #d4eaf0;
+    --purple-2: #b9dee7;
+    --purple-3: #9bcfdc;
+    --purple-4: #7dc0d1;
+    --purple-5: #62b4c8;
+    --red-1: #fff8f7;
+    --red-2: #ffd8d4;
+    --red-3: #ffb4ab;
+    --red-4: #ff9082;
+    --red-5: #ff705e;
+    --reply: linear-gradient(to right, color-mix(in hsl, #bfc8cb, transparent 90%) 40%, transparent);
+    --reply-hover: linear-gradient(to right, color-mix(in hsl, #bfc8cb, transparent 95%) 40%, transparent);
+    --streaming: #e5e8f7;
+    --text-0: #00363f;
+    --text-1: #bfc8cb;
+    --text-2: #bfc8cb;
+    --text-3: #bfc8cb;
+    --text-4: #bfc8cb;
+    --text-5: #899295;
+    --yellow-1: #e9f5fa;
+    --yellow-2: #cbe7f3;
+    --yellow-3: #aad8ec;
+    --yellow-4: #89c9e5;
+    --yellow-5: #6bbbde;
+}
+
+/*
+ * Reduce hover/active highlight.
+ * The base theme can still style hover states, but the strong accent overlay is removed.
+ */
+:root, :root:root, body, #app-mount {
+    --hover: color-mix(in hsl, var(--text-3), transparent 92%);
+    --active: color-mix(in hsl, var(--text-3), transparent 86%);
+    --active-2: color-mix(in hsl, var(--text-3), transparent 80%);
+    --message-hover: color-mix(in hsl, var(--text-3), transparent 94%);
+    --border-hover: var(--border);
+    --border-light: var(--border);
+    --button-border: var(--border);
+}

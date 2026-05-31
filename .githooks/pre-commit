@@ -1,0 +1,65 @@
+#!/usr/bin/env bash
+# Block commits that introduce secrets. Scans STAGED additions only.
+# Uses gitleaks if installed; always runs the built-in pattern scan too.
+# Escape hatch for a confirmed false positive:  ALLOW_SECRET=1 git commit ...
+set -euo pipefail
+
+fail() { echo "🛑 pre-commit: $*" >&2; }
+
+if [[ "${ALLOW_SECRET:-0}" == "1" ]]; then
+  echo "⚠️  pre-commit: secret scan bypassed (ALLOW_SECRET=1)" >&2
+  exit 0
+fi
+
+# Staged additions only (drop the +++ path headers).
+added="$(git diff --cached --no-color -U0 | grep -E '^\+' | grep -vE '^\+\+\+ ' || true)"
+
+violations=0
+# scan <regex> <label> [require_digit]
+# Extracts just the matched token (-o). If require_digit=1, keep only tokens
+# containing a digit — real keys/tokens do; translated words and labels don't.
+scan() {
+  local regex="$1" label="$2" require_digit="${3:-0}" matches
+  matches="$(printf '%s\n' "$added" | grep -oEi -e "$regex" || true)"
+  [[ "$require_digit" == "1" ]] && matches="$(printf '%s\n' "$matches" | grep -E '[0-9]' || true)"
+  matches="$(printf '%s\n' "$matches" | grep -v '^$' || true)"
+  if [[ -n "$matches" ]]; then
+    fail "possible $label:"
+    printf '%s\n' "$matches" | sed -E 's/(.{12}).*/\1…(masked)/' | sort -u >&2
+    violations=1
+  fi
+}
+
+# High-confidence provider formats — hard fail, near-zero false positives.
+scan 'AIza[0-9A-Za-z_-]{20,}'      'Google API key'
+scan 'sk-ant-[A-Za-z0-9_-]{20,}'   'Anthropic API key'
+scan 'sk-[A-Za-z0-9]{20,}'         'OpenAI-style key'
+scan 'gh[pousr]_[A-Za-z0-9]{20,}'  'GitHub token'
+scan 'AKIA[0-9A-Z]{16}'            'AWS access key id'
+scan 'xox[baprs]-[A-Za-z0-9-]{10,}' 'Slack token'
+scan 'eyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}' 'JWT'
+scan '-----BEGIN [A-Z ]*PRIVATE KEY-----' 'private key block'
+
+# Generic credential assignment — only flag values that contain a digit and
+# have no whitespace, so i18n strings / labels don't trip it.
+scan '(api[_-]?key|apikey|secret|password|passwd|access[_-]?token|client[_-]?secret)["'\'' :=]+[A-Za-z0-9/+_.=-]{16,}' \
+     'generic credential assignment' 1
+
+# Belt-and-suspenders: gitleaks on the staged tree if available.
+if command -v gitleaks >/dev/null 2>&1; then
+  if ! gitleaks protect --staged --no-banner >/dev/null 2>&1; then
+    fail "gitleaks flagged staged content"; gitleaks protect --staged --no-banner >&2 || true
+    violations=1
+  fi
+fi
+
+if [[ "$violations" -ne 0 ]]; then
+  cat >&2 <<'EOF'
+
+Commit aborted: potential secret detected in staged changes.
+ - Remove the secret, or move it to ~/.local/state (never tracked).
+ - False positive? Re-run with: ALLOW_SECRET=1 git commit ...
+EOF
+  exit 1
+fi
+exit 0

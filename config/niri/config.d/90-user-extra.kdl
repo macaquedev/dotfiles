@@ -1,0 +1,66 @@
+// ─────────────────────────────────────────────────────────────────────────────
+// 90 — Your personal overrides
+// ─────────────────────────────────────────────────────────────────────────────
+//
+// This file is YOURS. iNiR updates will never overwrite it.
+// Put any custom configuration here: extra binds, per-app window rules,
+// output configuration, named workspaces, etc.
+//
+// Since Niri evaluates config top-to-bottom, settings here take effect
+// after all other config.d files. For window-rule properties, all matching
+// rules accumulate. For scalar values (like gaps), the last one wins.
+//
+// Examples:
+//
+//   // Named workspaces (sticky, always present)
+//   workspace "browser"
+//   workspace "code"
+//   workspace "music"
+//
+//   // Per-app workspace assignment
+//   window-rule {
+//       match app-id="firefox"
+//       open-on-workspace "browser"
+//   }
+//
+//   // Extra keybind
+//   binds {
+//       Mod+P { spawn "rofi" "-show" "drun"; }
+//   }
+//
+//   // Output config for your specific monitor
+//   output "DP-1" {
+//       mode "3440x1440@100.000"
+//       scale 1
+//       position x=0 y=0
+//   }
+// ─────────────────────────────────────────────────────────────────────────────
+
+// ── Persistent workspaces ─────────────────────────────────────────────────────
+// 12 always-present workspaces, named "1".."12" so the index and the displayed
+// number match. The iNiR bar is set to show 12 fixed pills (inir/config.json).
+workspace "1"
+workspace "2"
+workspace "3"
+workspace "4"
+workspace "5"
+workspace "6"
+workspace "7"
+workspace "8"
+workspace "9"
+workspace "10"
+workspace "11"
+workspace "12"
+
+// ── App → workspace routing ───────────────────────────────────────────────────
+// WhatsApp (ElecWhat) always opens on workspace 11.
+window-rule {
+    match app-id="elecwhat"
+    open-on-workspace "11"
+}
+
+// Discord (Vesktop) always opens on workspace 12.
+window-rule {
+    match app-id="(?i)^(vesktop|discord)$"
+    open-on-workspace "12"
+}

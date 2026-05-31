@@ -1,0 +1,19 @@
+{
+  "version": "2.25.2",
+  "commit": "91560344",
+  "installed_at": "2026-05-29T21:37:27+01:00",
+  "installedAt": "2026-05-29T21:37:27+01:00",
+  "source": "setup-install",
+  "repo_path": "__HOME__/inir",
+  "repoPath": "__HOME__/inir",
+  "install_mode": "repo-copy",
+  "installMode": "repo-copy",
+  "update_strategy": "repo-setup",
+  "updateStrategy": "repo-setup",
+  "package_manager": "",
+  "packageManager": "",
+  "package_name": "",
+  "packageName": "",
+  "package_update_hint": "",
+  "packageUpdateHint": ""
+}

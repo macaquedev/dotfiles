@@ -1,0 +1,19 @@
+[Unit]
+Description=niri-monocle: auto-maximize the lone window in a workspace
+# Tie lifecycle to the graphical session (mirrors inir.service).
+PartOf=graphical-session.target
+After=graphical-session.target
+# Consumer, not producer — never pull in the target itself.
+Requisite=graphical-session.target
+StartLimitIntervalSec=30
+StartLimitBurst=5
+
+[Service]
+Type=simple
+ExecStart=__HOME__/.local/bin/niri-monocle
+Restart=on-failure
+RestartSec=3
+
+[Install]
+# Start only under niri: enabling creates niri.service.wants/ (same scheme inir uses).
+WantedBy=niri.service

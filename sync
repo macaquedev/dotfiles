@@ -1,0 +1,51 @@
+#!/usr/bin/env bash
+# sync — pull your live config into this repo, then commit & push.
+# Usage:  ./sync ["commit message"]
+#         ./sync --no-push        # stage+commit locally only
+set -euo pipefail
+source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/lib.sh"
+cd "$REPO_ROOT"
+
+PUSH=1; MSG=""
+for arg in "$@"; do
+  case "$arg" in
+    --no-push) PUSH=0 ;;
+    *) MSG="$arg" ;;
+  esac
+done
+
+echo "==> Pulling live config -> repo"
+for entry in "${ENTRIES[@]}"; do
+  IFS='|' read -r live repo type <<<"$entry"
+  src="$HOME/$live" dst="$REPO_ROOT/$repo"
+  if [[ ! -e "$src" ]]; then
+    echo "   skip (missing on this machine): $live"
+    continue
+  fi
+  case "$type" in
+    dir|qs) _copy_tree "$src" "$dst" ;;
+    *)      mkdir -p "$(dirname "$dst")"; cp -a "$src" "$dst" ;;
+  esac
+  echo "   $live"
+done
+
+echo "==> Templating \$HOME -> $HOME_TOKEN (portability + no username leak)"
+_template_dir "$HOME" "$HOME_TOKEN" "$REPO_ROOT"
+
+if git diff --quiet && git diff --cached --quiet && [[ -z "$(git status --porcelain)" ]]; then
+  echo "==> No changes. Nothing to publish."
+  exit 0
+fi
+
+git add -A
+echo "==> Changes staged:"
+git status --short
+
+# pre-commit hook runs the secret scan and will abort the commit on a hit
+git commit -m "${MSG:-chore: sync dotfiles}"
+
+if [[ "$PUSH" -eq 1 ]]; then
+  git push && echo "==> Pushed." || { echo "!! push failed (no remote yet?)"; exit 1; }
+else
+  echo "==> Committed locally (--no-push). Run 'git push' when ready."
+fi
