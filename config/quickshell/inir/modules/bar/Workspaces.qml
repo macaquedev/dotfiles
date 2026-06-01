@@ -19,6 +19,25 @@ Item {
     readonly property HyprlandMonitor monitor: CompositorService.isHyprland ? Hyprland.monitorFor(root.QsWindow.window?.screen) : null
     readonly property Toplevel activeWindow: ToplevelManager.activeToplevel
     readonly property var wsConfig: Config.options?.bar?.workspaces ?? {}
+
+    // Warp-back: niri's warp-mouse-to-focus flings the pointer toward the focused
+    // window (screen center on an empty workspace) when we switch workspace via IPC.
+    // niri applies that warp on the next frame, so fire ours after a short delay to
+    // land last and return the cursor to where the user clicked on the bar.
+    // Coords are physical pixels: the shell runs with QT_SCALE_FACTOR=1, so
+    // mapToGlobal already returns device pixels (no scale multiplication needed).
+    property point pendingWarp: Qt.point(-1, -1)
+    Timer {
+        id: warpBackTimer
+        interval: 60
+        onTriggered: {
+            if (root.pendingWarp.x >= 0) {
+                Quickshell.execDetached(["ydotool", "mousemove", "--absolute",
+                    "-x", Math.round(root.pendingWarp.x).toString(),
+                    "-y", Math.round(root.pendingWarp.y).toString()])
+            }
+        }
+    }
     
     // Per-monitor: each bar shows workspaces for its own output (Niri)
     readonly property bool perMonitor: (wsConfig.perMonitor ?? true) && CompositorService.isNiri
@@ -370,7 +389,12 @@ Item {
                 implicitWidth: vertical ? Appearance.sizes.verticalBarWidth : Appearance.sizes.verticalBarWidth
                 onPressed: {
                     if (CompositorService.isNiri) {
+                        // Record the click position (already physical px), switch
+                        // workspace, then warp the cursor back after niri's warp.
+                        const gp = button.mapToGlobal(button.width / 2, button.height / 2)
+                        root.pendingWarp = Qt.point(gp.x, gp.y)
                         NiriService.switchToWorkspace(root.workspaceIndexForSlot(workspaceValue))
+                        warpBackTimer.restart()
                     } else if (CompositorService.isHyprland) {
                         Hyprland.dispatch(`workspace ${workspaceValue}`)
                     }

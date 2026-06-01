@@ -66,9 +66,34 @@ done
 
 [[ "$DO_BACKUP" -eq 1 && -d "$BACKUP" ]] && echo "==> Previous config backed up to: $BACKUP"
 
+# 3.5 ydotool — the bar uses it to warp the cursor back after a workspace click
+#     (niri's warp-mouse-to-focus would otherwise fling the pointer to center).
+echo "==> Setting up ydotool (cursor warp-back on workspace clicks)"
+command -v ydotoold >/dev/null 2>&1 || sudo pacman -S --needed --noconfirm ydotool \
+  || echo "   !! install the 'ydotool' package manually"
+# Let ydotoold run as your user (needs /dev/uinput access).
+if [[ ! -f /etc/udev/rules.d/80-uinput.rules ]]; then
+  echo 'KERNEL=="uinput", GROUP="input", MODE="0660", OPTIONS+="static_node=uinput"' \
+    | sudo tee /etc/udev/rules.d/80-uinput.rules >/dev/null
+  sudo udevadm control --reload-rules && sudo udevadm trigger
+fi
+id -nG | grep -qw input || { sudo usermod -aG input "$USER"; NEED_RELOGIN=1; }
+mkdir -p "$HOME/.config/systemd/user"
+cat > "$HOME/.config/systemd/user/ydotoold.service" <<'UNIT'
+[Unit]
+Description=ydotool daemon
+[Service]
+ExecStart=/usr/bin/ydotoold
+Restart=on-failure
+[Install]
+WantedBy=default.target
+UNIT
+
 # 4. Enable user services + reload niri
 echo "==> Enabling services"
 systemctl --user daemon-reload || true
+systemctl --user enable --now ydotoold.service 2>/dev/null \
+  || echo "   (ydotoold will start after a re-login if uinput access was just granted)"
 systemctl --user enable --now niri-monocle.service 2>/dev/null \
   || echo "   (niri-monocle will start under niri.service — enabled via WantedBy)"
 command -v niri >/dev/null && niri msg action load-config-file 2>/dev/null || true
@@ -78,4 +103,6 @@ cat <<EOF
 ==> Done.
    Log out and back in (pick the Niri session in SDDM), or restart Niri.
    Wallpaper installed at: ~/Shared/Pictures/Wallpapers/wp.jpg
+${NEED_RELOGIN:+   NOTE: you were added to the 'input' group — log out/in for the
+         workspace-click cursor warp-back to work.}
 EOF
