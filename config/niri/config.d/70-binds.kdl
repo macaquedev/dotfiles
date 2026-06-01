@@ -65,7 +65,7 @@ binds {
 
     // Region screenshot → ask Gemini about it (new Vivaldi window, paste, send).
     Mod+Shift+G { spawn "__HOME__/.local/bin/gemini-screenshot"; }
-    Mod+Shift+X { spawn "__HOME__/.local/bin/inir" "region" "ocr"; }
+    Mod+Shift+T { spawn "__HOME__/.local/bin/inir" "region" "ocr"; }
     Mod+Shift+A { spawn "__HOME__/.local/bin/inir" "region" "search"; }
 
     // Wallpaper picker, settings, cheatsheet, panel family switch.
