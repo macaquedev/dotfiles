@@ -26,7 +26,21 @@ This will:
 Your existing config is backed up to `~/.config/dotfiles-backup-<timestamp>/`
 first. Then log out and pick the **Niri** session in SDDM.
 
-Flags: `--no-inir` (overlay only, iNiR already installed), `--no-backup`.
+Flags: `--no-inir` (overlay only, iNiR already installed), `--no-backup`,
+`--keyd` / `--no-keyd` (install or skip the keyd remap without being asked).
+
+### keyd (optional)
+
+The installer asks whether you want my system-wide [keyd](https://github.com/rvaiya/keyd)
+key remap (kernel-level, works in Wayland/X/TTY):
+
+- Tap **Left Super** → `F13` (niri opens the launcher); hold → normal Super
+- **Caps Lock**: tap → Esc, hold → Ctrl; **Esc** key → Caps Lock
+- Hold Caps Lock as a layer: `h/j/k/l` = arrows, `q/w/e/r` = Ctrl+A/X/C/V,
+  `s/d` = undo/redo, Backspace = Ctrl+Backspace
+
+If you already have `/etc/keyd/default.conf`, it's backed up in place (to
+`.bak`) before mine is written — nothing is overwritten.
 
 ## Updating (me)
 

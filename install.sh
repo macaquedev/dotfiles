@@ -7,14 +7,18 @@
 #
 # Flags:  --no-inir   skip the upstream iNiR install (config overlay only)
 #         --no-backup do not back up existing config before overwriting
+#         --keyd      install the keyd config without asking
+#         --no-keyd   skip the keyd config without asking
 set -euo pipefail
 source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/lib.sh"
 
-DO_INIR=1; DO_BACKUP=1
+DO_INIR=1; DO_BACKUP=1; KEYD=ask
 for arg in "$@"; do
   case "$arg" in
     --no-inir)   DO_INIR=0 ;;
     --no-backup) DO_BACKUP=0 ;;
+    --keyd)      KEYD=yes ;;
+    --no-keyd)   KEYD=no ;;
   esac
 done
 
@@ -97,6 +101,49 @@ systemctl --user enable --now ydotoold.service 2>/dev/null \
 systemctl --user enable --now niri-monocle.service 2>/dev/null \
   || echo "   (niri-monocle will start under niri.service — enabled via WantedBy)"
 command -v niri >/dev/null && niri msg action load-config-file 2>/dev/null || true
+
+# 5. keyd — OPTIONAL system-wide key remapping (the person chooses).
+echo "==> keyd key remapping (optional)"
+cat <<'KEYD_INFO'
+   keyd remaps keys in the kernel, so it works everywhere (Wayland, X, TTYs).
+   This config does:
+     • Tap Left Super alone   -> F13  (niri binds it to the app launcher)
+     • Hold Left Super        -> normal Super modifier (all Mod+… binds still work)
+     • Caps Lock: tap -> Esc, hold -> Ctrl;   Esc key -> Caps Lock
+     • Hold Caps Lock as a layer:
+         h/j/k/l = ← ↓ ↑ →       q/w/e/r = Ctrl+A/X/C/V
+         s/d = Ctrl+Z / Ctrl+Y   Backspace = Ctrl+Backspace
+KEYD_INFO
+
+install_keyd=0
+case "$KEYD" in
+  yes) install_keyd=1 ;;
+  no)  echo "   Skipping keyd (--no-keyd)." ;;
+  ask)
+    if [[ -t 0 ]]; then
+      read -rp "   Install this keyd config? [y/N] " ans
+      [[ "$ans" =~ ^[Yy]$ ]] && install_keyd=1 || echo "   Skipping keyd."
+    else
+      echo "   Non-interactive run; skipping keyd (re-run with --keyd to install)."
+    fi ;;
+esac
+
+if [[ "$install_keyd" -eq 1 ]]; then
+  command -v keyd >/dev/null 2>&1 || sudo pacman -S --needed --noconfirm keyd
+  sudo mkdir -p /etc/keyd
+  # Never overwrite an existing config: back it up in place (and don't clobber
+  # a previous .bak either).
+  if [[ -e /etc/keyd/default.conf ]]; then
+    bak=/etc/keyd/default.conf.bak
+    [[ -e "$bak" ]] && bak="/etc/keyd/default.conf.$(date +%Y%m%d-%H%M%S).bak"
+    sudo cp -a /etc/keyd/default.conf "$bak"
+    echo "   Existing keyd config backed up to $bak"
+  fi
+  sudo cp "$REPO_ROOT/system/keyd/default.conf" /etc/keyd/default.conf
+  sudo systemctl enable --now keyd
+  sudo keyd reload 2>/dev/null || sudo systemctl restart keyd || true
+  echo "   keyd installed and reloaded."
+fi
 
 cat <<EOF
 

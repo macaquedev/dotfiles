@@ -29,6 +29,13 @@ for entry in "${ENTRIES[@]}"; do
   echo "   $live"
 done
 
+# keyd lives outside $HOME (system config); world-readable, so no sudo to pull.
+if [[ -f /etc/keyd/default.conf ]]; then
+  mkdir -p "$REPO_ROOT/system/keyd"
+  cp -a /etc/keyd/default.conf "$REPO_ROOT/system/keyd/default.conf"
+  echo "   /etc/keyd/default.conf"
+fi
+
 echo "==> Templating \$HOME -> $HOME_TOKEN (portability + no username leak)"
 _template_dir "$HOME" "$HOME_TOKEN" "$REPO_ROOT"
 
