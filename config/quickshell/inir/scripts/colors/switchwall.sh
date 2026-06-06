@@ -5,6 +5,7 @@ XDG_CACHE_HOME="${XDG_CACHE_HOME:-$HOME/.cache}"
 XDG_STATE_HOME="${XDG_STATE_HOME:-$HOME/.local/state}"
 CACHE_DIR="$XDG_CACHE_HOME/quickshell"
 STATE_DIR="$XDG_STATE_HOME/quickshell"
+NOSWITCH_FINGERPRINT_FILE="$STATE_DIR/user/generated/.noswitch-fingerprint"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SHELL_ROOT="$(cd "$SCRIPT_DIR/../.." 2>/dev/null && pwd)"
 
@@ -711,6 +712,36 @@ switch() {
     fi
 }
 
+# ── --noswitch login fast-path cache ─────────────────────────────────────────
+# On login the shell re-runs this script with --noswitch to restore the palette
+# from the current wallpaper. When neither the wallpaper file nor any theming
+# config has changed since the last successful run, the generated colors are
+# identical, so the expensive generate_colors_material.py pass can be skipped.
+# Only static images use this path; video/gif keep their thumbnail/restore flow.
+noswitch_effective_mode() {
+    local m="$1"
+    if [[ -z "$m" ]]; then
+        local cur
+        cur=$(gsettings get org.gnome.desktop.interface color-scheme 2>/dev/null | tr -d "'")
+        [[ "$cur" == "prefer-dark" ]] && m="dark" || m="light"
+    fi
+    printf '%s' "$m"
+}
+
+noswitch_fingerprint() {
+    local img="$1" mode="$2" type="$3" img_stat=""
+    [[ -f "$img" ]] && img_stat="$(stat -c '%Y %s' "$img" 2>/dev/null)"
+    # _cfg holds every theming knob passed to generate_colors_material.py, so any
+    # config change that alters the palette also changes this fingerprint.
+    printf '%s\037%s\037%s\037%s\037%s' \
+        "$img" "$img_stat" "$mode" "$type" "${_cfg[*]}" | sha256sum | cut -d' ' -f1
+}
+
+noswitch_outputs_present() {
+    local g="$STATE_DIR/user/generated"
+    [[ -s "$g/colors.json" && -s "$g/color.txt" && -s "$g/material_colors.scss" ]]
+}
+
 main() {
     imgpath=""
     mode_flag=""
@@ -890,7 +921,32 @@ main() {
     # auto-detects the scheme from the already-loaded resized image. This avoids
     # a separate Python+cv2 process (~600ms on high-res images).
 
+    # Palette comes from a static wallpaper image (no --color override): eligible
+    # for the login fast-path cache.
+    _cache_eligible=0
+    if [[ -z "$color_flag" && -n "$imgpath" && -f "$imgpath" ]] \
+       && ! is_video "$imgpath" && ! is_gif "$imgpath"; then
+        _cache_eligible=1
+        _cache_fp="$(noswitch_fingerprint "$imgpath" "$(noswitch_effective_mode "$mode_flag")" "$type_flag")"
+    fi
+
+    # Login restore with unchanged inputs and intact outputs: skip regeneration.
+    if [[ -n "$noswitch_flag" && "$_cache_eligible" == "1" && "${INIR_FORCE_RECOLOR:-}" != "1" ]] \
+       && noswitch_outputs_present \
+       && [[ -f "$NOSWITCH_FINGERPRINT_FILE" \
+             && "$(cat "$NOSWITCH_FINGERPRINT_FILE" 2>/dev/null)" == "$_cache_fp" ]]; then
+        echo "[switchwall.sh] --noswitch: inputs unchanged, skipping color regeneration (INIR_FORCE_RECOLOR=1 to force)"
+        exit 0
+    fi
+
     switch "$imgpath" "$mode_flag" "$type_flag" "$color_flag" "$color" "$skip_config_write" "$noswitch_flag"
+
+    # Refresh the fingerprint after a successful generation so the next login can
+    # skip. A normal wallpaper switch primes it too; a failed run leaves missing
+    # outputs and so won't be cached.
+    if [[ "$_cache_eligible" == "1" ]] && noswitch_outputs_present; then
+        printf '%s\n' "$_cache_fp" > "$NOSWITCH_FINGERPRINT_FILE"
+    fi
 }
 
 main "$@"

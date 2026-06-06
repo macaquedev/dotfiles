@@ -19,7 +19,6 @@ binds {
 
     // Niri's built-in overview (zoomed-out workspace view).
     Mod+Tab repeat=false { toggle-overview; }
-    Mod+Shift+U repeat=false { toggle-overview; }
 
     // Open Emacs.
     Mod+Shift+E { spawn "emacs"; }

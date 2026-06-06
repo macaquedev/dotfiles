@@ -1359,7 +1359,7 @@
         "checkIntervalMinutes": 360,
         "dismissedCommit": "",
         "enabled": true,
-        "lastNotifiedCommit": "",
+        "lastNotifiedCommit": "5291aa2d",
         "openTerminalOnUpdate": true
     },
     "sidebar": {
