@@ -81,6 +81,11 @@ ShellRoot {
         if (Config.ready) {
             root._bootConfigReadyAt = Date.now();
             console.info("[Boot] T+" + (root._bootConfigReadyAt - root._bootCompletedAt) + "ms: Config.ready (immediate)");
+            // Config was already ready before this root was (re)built (hot-reload / preserved
+            // singletons). onReadyChanged won't fire, so apply theme + icons here too,
+            // otherwise the shell comes up with stale/unthemed colors and icons.
+            Qt.callLater(() => ThemeService.applyCurrentTheme());
+            Qt.callLater(() => IconThemeService.ensureInitialized());
             shellEntryTimer.start();
             deferredInitTimer.start();
         }
@@ -345,7 +350,7 @@ ShellRoot {
             "iiMediaControls", "iiNotificationPopup", "iiOnScreenDisplay", "iiOnScreenKeyboard",
             "iiOverlay", "iiOverview", "iiPolkit", "iiRegionSelector", "iiScreenCorners",
             "iiSessionScreen", "iiSidebarLeft", "iiSidebarRight", "iiTilingOverlay", "iiVerticalBar",
-            "iiWallpaperSelector", "iiCoverflowSelector", "iiClipboard", "iiShellUpdate"
+            "iiWallpaperSelector", "iiCoverflowSelector", "iiClipboard", "iiShellUpdate", "iiRecordingOsd"
         ],
         "waffle": [
             "wBar", "wBackground", "wBackdrop", "wStartMenu", "wActionCenter", "wNotificationCenter", "wNotificationPopup", "wOnScreenDisplay", "wWidgets", "wTaskView", "wLock", "wPolkit", "wSessionScreen",
@@ -454,3 +459,4 @@ ShellRoot {
         function set(family: string): void { root.setPanelFamily(family) }
     }
 }
+

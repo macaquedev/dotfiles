@@ -2,8 +2,8 @@
 # Auto-generated from QML IpcHandler declarations + docs/IPC.md metadata.
 # Do not edit manually.
 # Regenerate: python3 scripts/lib/generate-ipc-registry.py
-# IPC.md hash: d485625a3a77485d
-# Targets: 49
+# IPC.md hash: 0fcb5c3ba72f0099
+# Targets: 51
 
 declare -gA IPC_TARGET_DESC=(
   [ai]="AI chat service. Multi-provider (Gemini, OpenAI, Mistral) with tool support."
@@ -40,7 +40,8 @@ declare -gA IPC_TARGET_DESC=(
   [region]="Region selection tools. Screenshots, OCR, recording. Draw a box, get stuff done."
   [search]="Waffle start menu / search."
   [session]="Power menu. Logout, suspend, reboot, shutdown. The \"I'm done for today\" buttons."
-  [settings]="Open the settings window. GUI config so you don't have to edit JSON like it's 2005."
+  [settings]="Open or toggle the settings window. GUI config so you don't have to edit JSON by hand."
+  [settingsNav]="Navigate the settings overlay to a specific page (same as clicking the nav rail). Opening the window itself is the \`inir settings\` CLI command (target \`settings\` above)."
   [shellUpdate]="Shell update checker. Monitors the git repo for new commits and shows an update overlay."
   [sidebarLeft]="Left sidebar (AI chat, apps)."
   [sidebarRight]="Right sidebar (quick toggles, notepad, settings)."
@@ -51,10 +52,11 @@ declare -gA IPC_TARGET_DESC=(
   [waffleAltSwitcher]="Waffle Alt+Tab window switcher. Separate from the ii \`altSwitcher\` — supports quick-switch (first tab switches instantly, second opens UI) and no-visual-UI mode."
   [wallpaperSelector]="Wallpaper picker grid."
   [wbar]="Waffle taskbar visibility."
+  [widgetpower]="Desktop-widget power management (pauses widget rendering on game mode, fullscreen, present windows, or edit mode). Service: \`services/WidgetPowerManager.qml\`."
   [wnotificationCenter]="Waffle notification center."
   [wwidgets]="Waffle widgets panel."
   [ytmusic]="Direct YtMusic player control. Use these if you want to control YtMusic specifically, regardless of what other players are active."
-  [zoom]="Screen zoom. Accessibility feature, or for reading tiny text without squinting."
+  [zoom]="Screen zoom. Accessibility feature, or for reading tiny UI without pretending your monitor is the problem."
 )
 
 declare -gA IPC_TARGET_FAMILY=(
@@ -93,6 +95,7 @@ declare -gA IPC_TARGET_FAMILY=(
   [search]="waffle"
   [session]="shared"
   [settings]="shared"
+  [settingsNav]="shared"
   [shellUpdate]="shared"
   [sidebarLeft]="shared"
   [sidebarRight]="shared"
@@ -103,6 +106,7 @@ declare -gA IPC_TARGET_FAMILY=(
   [waffleAltSwitcher]="waffle"
   [wallpaperSelector]="shared"
   [wbar]="waffle"
+  [widgetpower]="waffle"
   [wnotificationCenter]="waffle"
   [wwidgets]="waffle"
   [ytmusic]="shared"
@@ -145,6 +149,7 @@ declare -gA IPC_TARGET_FUNCTIONS=(
   [search]="toggle close open"
   [session]="toggle close open"
   [settings]="open toggle"
+  [settingsNav]="page count current"
   [shellUpdate]="toggle open close check performUpdate dismiss undismiss diagnose"
   [sidebarLeft]="toggle close open detach attach"
   [sidebarRight]="toggle close open"
@@ -155,6 +160,7 @@ declare -gA IPC_TARGET_FUNCTIONS=(
   [waffleAltSwitcher]="open close toggle next previous"
   [wallpaperSelector]="toggle open close toggleOnMonitor random"
   [wbar]="toggle close open"
+  [widgetpower]="status"
   [wnotificationCenter]="toggle"
   [wwidgets]="toggle close open"
   [ytmusic]="playPause next previous stop"
@@ -271,8 +277,11 @@ declare -gA IPC_FUNCTION_DESC=(
   ["session:toggle"]="Open/close session menu"
   ["session:close"]="Hide session screen"
   ["session:open"]="Show session screen"
-  ["settings:open"]="Open settings window"
+  ["settings:open"]="Open the settings window"
   ["settings:toggle"]="Toggle settings (overlay mode toggles, window mode opens)"
+  ["settingsNav:page"]=""
+  ["settingsNav:count"]="Number of settings pages"
+  ["settingsNav:current"]="Current page index"
   ["shellUpdate:toggle"]="Open/close update overlay"
   ["shellUpdate:open"]="Open update overlay"
   ["shellUpdate:close"]="Close update overlay"
@@ -315,6 +324,7 @@ declare -gA IPC_FUNCTION_DESC=(
   ["wbar:toggle"]="Show/hide taskbar"
   ["wbar:close"]="Hide taskbar"
   ["wbar:open"]="Show taskbar"
+  ["widgetpower:status"]="Returns JSON: \`enabled\`, \`widgetsActive\`, and the active \`triggers\` (gameMode, fullscreen, windowsPresent, editMode)"
   ["wnotificationCenter:toggle"]="Open/close notification center"
   ["wwidgets:toggle"]="Open/close widgets"
   ["wwidgets:close"]="Close widgets"
@@ -323,8 +333,8 @@ declare -gA IPC_FUNCTION_DESC=(
   ["ytmusic:next"]="Play next track in YtMusic"
   ["ytmusic:previous"]="Play previous track in YtMusic"
   ["ytmusic:stop"]="Stop YtMusic playback"
-  ["zoom:zoomIn"]="Increase zoom level"
-  ["zoom:zoomOut"]="Decrease zoom level"
+  ["zoom:zoomIn"]="Increase compositor zoom"
+  ["zoom:zoomOut"]="Decrease compositor zoom"
 )
 
 declare -gA IPC_FUNCTION_ARGS=(
@@ -341,6 +351,7 @@ declare -gA IPC_FUNCTION_ARGS=(
   ["minimize:restore"]="<windowId>"
   ["packageSearch:search"]="<query>"
   ["panelFamily:set"]="<family>"
+  ["settingsNav:page"]="<index>"
   ["wallpaperSelector:toggleOnMonitor"]="<monitorName>"
 )
 
@@ -372,10 +383,10 @@ bind "Super+Shift+A" { spawn "inir" "region" "search"; }'
   [ytmusic]='bind "Mod+M+Space" { spawn "inir" "ytmusic" "playPause"; }'
 )
 
-IPC_ALL_TARGETS=(ai altSwitcher appCatalog audio background bar brightness cheatsheet clipboard cliphistService closeConfirm controlPanel coverflowSelector customWidgets gamemode globalActions keyboard lock mediaControls memory minimize mpris notifications osd osdVolume osk overlay overview packageSearch panelFamily recordingOsd region search session settings shellUpdate sidebarLeft sidebarRight taskview tiling voiceSearch wactionCenter waffleAltSwitcher wallpaperSelector wbar wnotificationCenter wwidgets ytmusic zoom)
-IPC_SHARED_TARGETS=(ai altSwitcher appCatalog audio bar brightness cheatsheet clipboard cliphistService closeConfirm controlPanel coverflowSelector gamemode globalActions keyboard lock mediaControls memory minimize mpris notifications osdVolume osk overview packageSearch panelFamily region session settings shellUpdate sidebarLeft sidebarRight tiling voiceSearch wallpaperSelector ytmusic zoom)
+IPC_ALL_TARGETS=(ai altSwitcher appCatalog audio background bar brightness cheatsheet clipboard cliphistService closeConfirm controlPanel coverflowSelector customWidgets gamemode globalActions keyboard lock mediaControls memory minimize mpris notifications osd osdVolume osk overlay overview packageSearch panelFamily recordingOsd region search session settings settingsNav shellUpdate sidebarLeft sidebarRight taskview tiling voiceSearch wactionCenter waffleAltSwitcher wallpaperSelector wbar widgetpower wnotificationCenter wwidgets ytmusic zoom)
+IPC_SHARED_TARGETS=(ai altSwitcher appCatalog audio bar brightness cheatsheet clipboard cliphistService closeConfirm controlPanel coverflowSelector gamemode globalActions keyboard lock mediaControls memory minimize mpris notifications osdVolume osk overview packageSearch panelFamily region session settings settingsNav shellUpdate sidebarLeft sidebarRight tiling voiceSearch wallpaperSelector ytmusic zoom)
 IPC_II_TARGETS=(overlay)
-IPC_WAFFLE_TARGETS=(background customWidgets osd recordingOsd search taskview wactionCenter waffleAltSwitcher wbar wnotificationCenter wwidgets)
+IPC_WAFFLE_TARGETS=(background customWidgets osd recordingOsd search taskview wactionCenter waffleAltSwitcher wbar widgetpower wnotificationCenter wwidgets)
 
 declare -gA IPC_KEBAB_ALIASES=(
   [alt-switcher]=altSwitcher
@@ -391,6 +402,7 @@ declare -gA IPC_KEBAB_ALIASES=(
   [package-search]=packageSearch
   [panel-family]=panelFamily
   [recording-osd]=recordingOsd
+  [settings-nav]=settingsNav
   [shell-update]=shellUpdate
   [sidebar-left]=sidebarLeft
   [sidebar-right]=sidebarRight

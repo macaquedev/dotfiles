@@ -91,12 +91,14 @@ RippleButton {
     implicitWidth: vertical
         ? (isSeparator ? buttonSize : buttonSize)
         : (isSeparator ? 10 : buttonSize)
+    // Full bar size on the cross axis so the delegate is centred in the row
+    // (using buttonSize here left the content top-aligned and slightly raised).
     implicitHeight: vertical
         ? (isSeparator ? 10 : buttonSize)
-        : (isSeparator ? buttonSize : buttonSize)
+        : barSize
 
-    topInset: 2
-    bottomInset: 2
+    topInset: 4
+    bottomInset: 4
     leftInset: 2
     rightInset: 2
 
@@ -114,17 +116,12 @@ RippleButton {
         : Appearance.auroraEverywhere ? Appearance.aurora.colSubSurfaceActive
         : Appearance.colors.colLayer1Active
 
-    // Active app gets a subtle background tint
-    colBackgroundToggled: Appearance.angelEverywhere ? Appearance.angel.colGlassCardHover
-        : Appearance.inirEverywhere ? Appearance.inir.colLayer2
-        : Appearance.auroraEverywhere ? Appearance.aurora.colSubSurface
-        : Appearance.colors.colSecondaryContainer
-    colBackgroundToggledHover: Appearance.angelEverywhere ? Appearance.angel.colGlassCardActive
-        : Appearance.inirEverywhere ? Appearance.inir.colLayer2Hover
-        : Appearance.auroraEverywhere ? Appearance.aurora.colSubSurfaceActive
-        : Appearance.colors.colSecondaryContainerHover
-    colRippleToggled: Appearance.auroraEverywhere ? Appearance.aurora.colSubSurfaceActive
-        : Appearance.colors.colSecondaryContainerActive
+    // Focus is shown by the window-indicator dots/line below the icon, so the
+    // active app gets NO filled background box (the dark box read like a shadow
+    // and broke the flat look). Hover still gives subtle feedback.
+    colBackgroundToggled: "transparent"
+    colBackgroundToggledHover: root.colBackgroundHover
+    colRippleToggled: root.colRipple
 
     toggled: appIsActive
 

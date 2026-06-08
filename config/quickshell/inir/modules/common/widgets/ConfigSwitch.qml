@@ -15,7 +15,7 @@ RippleButton {
     signal toggledByUser(bool checked)
 
     Layout.fillWidth: true
-    implicitHeight: contentItem.implicitHeight + 8 * 2
+    implicitHeight: contentItem.implicitHeight + 6 * 2
     font.pixelSize: Appearance.font.pixelSize.small
 
     function _findSettingsContext() {
@@ -88,12 +88,12 @@ RippleButton {
     }
 
     contentItem: RowLayout {
-        spacing: 10
+        spacing: 8
         OptionalMaterialSymbol {
             id: iconWidget
             icon: root.buttonIcon
             opacity: root.enabled ? 1 : 0.4
-            iconSize: Appearance.font.pixelSize.larger
+            iconSize: Appearance.font.pixelSize.large
         }
         StyledText {
             id: labelWidget

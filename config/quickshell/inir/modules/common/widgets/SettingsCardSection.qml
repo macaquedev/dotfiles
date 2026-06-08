@@ -175,7 +175,7 @@ Item {
 
                         sourceComponent: MaterialSymbol {
                             text: root.icon
-                            iconSize: Appearance.font.pixelSize.hugeass
+                            iconSize: Appearance.font.pixelSize.larger
                             color: parent._iconColor
 
                             Behavior on color {
@@ -186,8 +186,8 @@ Item {
 
                     StyledText {
                         text: root.title
-                        font.pixelSize: Appearance.font.pixelSize.larger
-                        font.weight: Font.Medium
+                        font.pixelSize: Appearance.font.pixelSize.normal
+                        font.weight: Font.DemiBold
                         color: root.expanded
                             ? SettingsMaterialPreset.titleExpandedColor
                             : SettingsMaterialPreset.titleCollapsedColor
@@ -201,7 +201,7 @@ Item {
                     MaterialSymbol {
                         visible: root.collapsible
                         text: root.expanded ? "expand_less" : "expand_more"
-                        iconSize: Appearance.font.pixelSize.large
+                        iconSize: Appearance.font.pixelSize.normal
                         color: Appearance.angelEverywhere
                             ? Appearance.angel.colTextMuted
                             : Appearance.colors.colSubtext
@@ -231,13 +231,13 @@ Item {
                 clip: true
 
                 Behavior on implicitHeight {
-                    animation: NumberAnimation { duration: Appearance.animation.elementMove.duration; easing.type: Appearance.animation.elementMove.type; easing.bezierCurve: Appearance.animation.elementMove.bezierCurve }
+                    animation: NumberAnimation { duration: Appearance.animation.elementResize.duration; easing.type: Appearance.animation.elementResize.type; easing.bezierCurve: Appearance.animation.elementResize.bezierCurve }
                 }
 
                 ColumnLayout {
                     id: sectionContent
                     width: parent.width
-                    spacing: 8
+                    spacing: SettingsMaterialPreset.groupSpacing
                     opacity: root.expanded ? 1 : 0
 
                     Behavior on opacity {

@@ -32,6 +32,20 @@ PopupWindow {
         root.visible = false
     }
 
+    onAnchorItemChanged: {
+        if (root.visible && !root.anchorItem)
+            root.close()
+    }
+
+    Connections {
+        target: root.anchorItem
+        enabled: root.visible
+        function onToplevelsChanged() {
+            if ((root.anchorItem?.toplevels?.length ?? 0) === 0)
+                root.close()
+        }
+    }
+
     function open(): void {
         marginBehavior.enabled = true
         root.visible = true

@@ -140,7 +140,7 @@ Item {
         colBackground: "transparent"
         colBackgroundHover: Appearance.angelEverywhere ? Appearance.angel.colGlassCardHover
             : Appearance.inirEverywhere ? Appearance.inir.colLayer1Hover 
-            : Appearance.auroraEverywhere ? Appearance.aurora.colSubSurface : Appearance.colors.colLayer1Hover
+            : Appearance.auroraEverywhere ? Appearance.aurora.colSubSurfaceHover : Appearance.colors.colLayer1Hover
         colRipple: Appearance.angelEverywhere ? Appearance.angel.colGlassCardActive
             : Appearance.inirEverywhere ? Appearance.inir.colLayer1Active 
             : Appearance.auroraEverywhere ? Appearance.aurora.colSubSurfaceActive : Appearance.colors.colLayer1Active

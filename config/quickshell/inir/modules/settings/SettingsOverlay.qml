@@ -4,6 +4,7 @@ import QtQuick.Controls
 import QtQuick.Layouts
 import Qt5Compat.GraphicalEffects as GE
 import Quickshell
+import Quickshell.Io
 import Quickshell.Wayland
 import Quickshell.Hyprland
 import qs.services
@@ -522,6 +523,16 @@ Scope {
         }
     }
 
+    IpcHandler {
+        target: "settingsNav"
+        function page(index: int): void {
+            GlobalStates.settingsOverlayOpen = true
+            root.overlayCurrentPage = index
+        }
+        function count(): int { return root.overlayPages.length }
+        function current(): int { return root.overlayCurrentPage }
+    }
+
     Loader {
         id: panelLoader
         active: root._panelLoaded
@@ -556,6 +567,12 @@ Scope {
                         GlobalStates.settingsOverlayOpen = false;
                     }
                 }
+            }
+
+            Shortcut {
+                sequences: ["Ctrl+F"]
+                context: Qt.WindowShortcut
+                onActivated: if (typeof overlaySearchField !== "undefined" && overlaySearchField) overlaySearchField.forceActiveFocus()
             }
 
             // Focus grab for Hyprland
@@ -610,8 +627,8 @@ Scope {
             Rectangle {
                 id: settingsCard
 
-                readonly property real maxCardWidth: Math.min(1100, settingsPanel.width * 0.88)
-                readonly property real maxCardHeight: Math.min(850, settingsPanel.height * 0.88)
+                readonly property real maxCardWidth: Math.min(1100, Math.max(820, settingsPanel.width * 0.7))
+                readonly property real maxCardHeight: Math.min(840, Math.max(600, settingsPanel.height * 0.82))
                 readonly property real panelBgOpacity: Config.options?.settingsUi?.overlayAppearance?.backgroundOpacity ?? 1.0
 
                 anchors.centerIn: parent
@@ -646,15 +663,7 @@ Scope {
                     animation: NumberAnimation { duration: Appearance.animation.elementMoveEnter.duration; easing.type: Appearance.animation.elementMoveEnter.type; easing.bezierCurve: Appearance.animation.elementMoveEnter.bezierCurve }
                 }
 
-                // Shadow - hidden in aurora/angel (angel uses StyledRectangularShadow)
-                layer.enabled: Appearance.effectsEnabled && !Appearance.auroraEverywhere
-                layer.effect: GE.DropShadow {
-                    color: Appearance.colors.colShadow
-                    radius: 24
-                    samples: 25
-                    verticalOffset: 8
-                    horizontalOffset: 0
-                }
+                // Shadow comes from the StyledRectangularShadow above (cheap native RectangularShadow).
 
                 // Glass background for aurora/angel wallpaper blur
                 GlassBackground {
@@ -1032,7 +1041,7 @@ Scope {
                         Rectangle {
                             id: navColumn
                             Layout.fillHeight: true
-                            Layout.preferredWidth: 160
+                            Layout.preferredWidth: 150
                             radius: Appearance.rounding.normal
                             color: "transparent"
 
@@ -1067,7 +1076,7 @@ Scope {
                                             // ── Category header ──
                                             Item {
                                                 width: parent.width
-                                                height: visible ? (navItem.index > 0 ? 28 : 20) : 0
+                                                height: visible ? (navItem.index > 0 ? 24 : 14) : 0
                                                 visible: navItem.modelData.type === "header"
 
                                                 Rectangle {
@@ -1104,34 +1113,23 @@ Scope {
                                                 id: navBtn
                                                 visible: navItem.modelData.type === "page"
                                                 width: parent.width
-                                                implicitHeight: visible ? 38 : 0
+                                                implicitHeight: visible ? 34 : 0
+                                                z: 1
 
                                                 readonly property int pageRealIndex: navItem.modelData.realIndex !== undefined ? navItem.modelData.realIndex : navItem.index
 
-                                                buttonRadius: Appearance.rounding.small
+                                                buttonRadius: Math.min(width, height) / 2
                                                 toggled: overlayCurrentPage === pageRealIndex
                                                 colBackground: "transparent"
-                                                colBackgroundToggled: Appearance.angelEverywhere
-                                                    ? Appearance.angel.colGlassCard
-                                                    : Appearance.inirEverywhere
-                                                        ? Appearance.inir.colLayer2
-                                                        : Appearance.auroraEverywhere
-                                                            ? Appearance.aurora.colElevatedSurface
-                                                            : Appearance.colors.colLayer1
+                                                colBackgroundToggled: "transparent"
                                                 colBackgroundToggledHover: Appearance.angelEverywhere
                                                     ? Appearance.angel.colGlassCardHover
                                                     : Appearance.inirEverywhere
                                                         ? Appearance.inir.colLayer1Hover
                                                         : Appearance.auroraEverywhere
                                                             ? Appearance.aurora.colElevatedSurface
-                                                            : Appearance.colors.colLayer1Hover
-                                                colBackgroundHover: Appearance.angelEverywhere
-                                                    ? Appearance.angel.colGlassCard
-                                                    : Appearance.inirEverywhere
-                                                        ? Appearance.inir.colLayer1Hover
-                                                        : Appearance.auroraEverywhere
-                                                            ? Appearance.aurora.colSubSurface
                                                             : CF.ColorUtils.transparentize(Appearance.colors.colLayer1Hover, 0.5)
+                                                colBackgroundHover: Appearance.colLayer1Hover
 
                                                 onClicked: overlayCurrentPage = pageRealIndex
 
@@ -1183,70 +1181,92 @@ Scope {
                                             }
                                         }
                                     }
-                                }
-                            }
 
-                            // ── Shared active indicator (travels between nav items) ──
-                            Rectangle {
-                                id: sharedNavIndicator
-                                z: 10
-                                width: 3
-                                radius: 2
-                                x: 4
-                                color: Appearance.angelEverywhere ? Appearance.angel.colPrimary
-                                     : Appearance.inirEverywhere ? Appearance.inir.colAccent
-                                     : Appearance.colors.colPrimary
+                                    // Active indicator: pill travelling behind the active item,
+                                    // inside navCol so its y matches the items' coordinate space.
+                                    Rectangle {
+                                        id: sharedNavIndicator
+                                        z: -1
+                                        parent: navCol
+                                        x: 0
+                                        width: navCol.width
+                                        radius: Appearance.rounding.small
+                                        color: Appearance.angelEverywhere ? Appearance.angel.colGlassCard
+                                             : Appearance.inirEverywhere ? Appearance.inir.colLayer2
+                                             : Appearance.auroraEverywhere ? Appearance.aurora.colElevatedSurface
+                                             : Appearance.colors.colPrimaryContainer
 
-                                property real targetY: 0
-                                property bool hasTarget: false
+                                        property real targetY: 0
+                                        property real targetH: 0
+                                        property bool hasTarget: false
 
-                                function updatePosition() {
-                                    for (var i = 0; i < navRepeater.count; i++) {
-                                        var item = navRepeater.itemAt(i);
-                                        if (item && item.modelData && item.modelData.type === "page" && item.modelData.realIndex === overlayCurrentPage) {
-                                            var btn = item.children[1]; // navBtn is second child
-                                            if (btn && btn.visible) {
-                                                var pos = btn.mapToItem(navColumn, 0, 0);
-                                                targetY = pos.y + (btn.height - 18) / 2;
-                                                hasTarget = true;
-                                                return;
+                                        // Leading/trailing edges travel at different speeds, so the
+                                        // pill stretches toward the target and contracts on arrival
+                                        // (same morph as the bar Workspaces indicator).
+                                        property real edgeTop: targetY
+                                        property real edgeBottom: targetY + targetH
+                                        Behavior on edgeTop {
+                                            enabled: Appearance.animationsEnabled
+                                            animation: NumberAnimation { duration: Appearance.animation.elementResize.duration; easing.type: Appearance.animation.elementResize.type; easing.bezierCurve: Appearance.animation.elementResize.bezierCurve }
+                                        }
+                                        Behavior on edgeBottom {
+                                            enabled: Appearance.animationsEnabled
+                                            animation: NumberAnimation { duration: Math.round(Appearance.animation.elementResize.duration * 1.18); easing.type: Appearance.animation.elementResize.type; easing.bezierCurve: Appearance.animation.elementResize.bezierCurve }
+                                        }
+
+                                        function updatePosition() {
+                                            for (var i = 0; i < navRepeater.count; i++) {
+                                                var item = navRepeater.itemAt(i);
+                                                if (item && item.modelData && item.modelData.type === "page" && item.modelData.realIndex === overlayCurrentPage) {
+                                                    var btn = item.children[1];
+                                                    if (btn && btn.visible) {
+                                                        targetY = item.y + btn.y;
+                                                        targetH = btn.height;
+                                                        hasTarget = true;
+                                                        return;
+                                                    }
+                                                }
+                                            }
+                                            hasTarget = false;
+                                        }
+
+                                        y: Math.min(edgeTop, edgeBottom)
+                                        height: hasTarget ? Math.abs(edgeBottom - edgeTop) : 0
+                                        opacity: hasTarget ? 1 : 0
+
+                                        Rectangle {
+                                            anchors.left: parent.left
+                                            anchors.verticalCenter: parent.verticalCenter
+                                            anchors.leftMargin: 4
+                                            width: 3
+                                            radius: 1.5
+                                            height: parent.hasTarget ? parent.height * 0.5 : 0
+                                            color: Appearance.angelEverywhere ? Appearance.angel.colPrimary
+                                                 : Appearance.inirEverywhere ? Appearance.inir.colAccent
+                                                 : Appearance.colors.colPrimary
+                                            Behavior on height {
+                                                enabled: Appearance.animationsEnabled
+                                                animation: NumberAnimation { duration: Appearance.animation.elementMoveFast.duration; easing.type: Appearance.animation.elementMoveFast.type; easing.bezierCurve: Appearance.animation.elementMoveFast.bezierCurve }
                                             }
                                         }
+
+                                        Behavior on opacity {
+                                            enabled: Appearance.animationsEnabled
+                                            animation: NumberAnimation { duration: Appearance.animation.elementMoveFast.duration; easing.type: Appearance.animation.elementMoveFast.type; easing.bezierCurve: Appearance.animation.elementMoveFast.bezierCurve }
+                                        }
+
+                                        Connections {
+                                            target: root
+                                            function onOverlayCurrentPageChanged() { Qt.callLater(sharedNavIndicator.updatePosition); }
+                                            function onVisibleNavItemsChanged() { Qt.callLater(sharedNavIndicator.updatePosition); }
+                                        }
+                                        Connections {
+                                            target: navRepeater
+                                            function onCountChanged() { Qt.callLater(sharedNavIndicator.updatePosition); }
+                                        }
+                                        Component.onCompleted: Qt.callLater(updatePosition)
                                     }
-                                    hasTarget = false;
                                 }
-
-                                y: targetY
-                                height: hasTarget ? 18 : 0
-                                opacity: hasTarget ? 1 : 0
-
-                                Behavior on y {
-                                    enabled: Appearance.animationsEnabled
-                                    animation: NumberAnimation { duration: Appearance.animation.elementMove.duration; easing.type: Easing.BezierSpline; easing.bezierCurve: Appearance.animationCurves.emphasizedDecel }
-                                }
-                                Behavior on height {
-                                    enabled: Appearance.animationsEnabled
-                                    animation: NumberAnimation { duration: Appearance.animation.elementMoveFast.duration; easing.type: Appearance.animation.elementMoveFast.type; easing.bezierCurve: Appearance.animation.elementMoveFast.bezierCurve }
-                                }
-                                Behavior on opacity {
-                                    enabled: Appearance.animationsEnabled
-                                    animation: NumberAnimation { duration: Appearance.animation.elementMoveFast.duration; easing.type: Appearance.animation.elementMoveFast.type; easing.bezierCurve: Appearance.animation.elementMoveFast.bezierCurve }
-                                }
-
-                                Connections {
-                                    target: root
-                                    function onOverlayCurrentPageChanged() { sharedNavIndicator.updatePosition(); }
-                                    function onVisibleNavItemsChanged() { Qt.callLater(sharedNavIndicator.updatePosition); }
-                                }
-                                Connections {
-                                    target: navFlickable
-                                    function onContentYChanged() { sharedNavIndicator.updatePosition(); }
-                                }
-                                Connections {
-                                    target: navRepeater
-                                    function onCountChanged() { Qt.callLater(sharedNavIndicator.updatePosition); }
-                                }
-                                Component.onCompleted: Qt.callLater(updatePosition)
                             }
 
                             // Window mode toggle at bottom of nav
@@ -1396,7 +1416,11 @@ Scope {
                                 Connections {
                                     target: root
                                     function onOverlayCurrentPageChanged() {
-                                        overlayPagesStack.visitedPages[overlayCurrentPage] = true
+                                        const n = overlayPages.length
+                                        const cur = overlayCurrentPage
+                                        overlayPagesStack.visitedPages[cur] = true
+                                        if (cur + 1 < n) overlayPagesStack.visitedPages[cur + 1] = true
+                                        if (cur - 1 >= 0) overlayPagesStack.visitedPages[cur - 1] = true
                                         overlayPagesStack.visitedPagesChanged()
                                     }
                                 }
@@ -1407,20 +1431,43 @@ Scope {
                                     onTriggered: {
                                         overlayPagesStack.visitedPages[overlayCurrentPage] = true
                                         overlayPagesStack.visitedPagesChanged()
+                                        adjacentLoadTimer.start()
+                                    }
+                                }
+
+                                // Preload the immediate neighbours shortly after the current
+                                // page is shown, so the first left/right navigation is instant
+                                // without blocking the initial render.
+                                Timer {
+                                    id: adjacentLoadTimer
+                                    interval: 180
+                                    onTriggered: {
+                                        const cur = overlayCurrentPage
+                                        const n = overlayPages.length
+                                        if (cur + 1 < n) overlayPagesStack.visitedPages[cur + 1] = true
+                                        if (cur - 1 >= 0) overlayPagesStack.visitedPages[cur - 1] = true
+                                        overlayPagesStack.visitedPagesChanged()
                                     }
                                 }
 
                                 Component.onCompleted: {
+                                    // Only load the current page on open. The full background
+                                    // preload (all 16 heavy pages ~22k lines of QML) used to start
+                                    // here and saturated the render thread, making every page
+                                    // navigation slow. It now starts lazily — only when the user
+                                    // actually types in search (see overlaySearchField.onTextChanged),
+                                    // so opening and browsing Settings stays snappy.
                                     initialLoadTimer.start()
                                 }
 
                                 Timer {
                                     id: overlayPreloadTimer
-                                    interval: 100
+                                    // Idle, one page per tick so search-index preload never
+                                    // competes with active navigation.
+                                    interval: 220
                                     repeat: true
                                     onTriggered: {
-                                        // Load 2 pages per tick for faster indexing
-                                        for (var i = 0; i < 2 && overlayPagesStack.preloadIndex < overlayPages.length; i++) {
+                                        for (var i = 0; i < 1 && overlayPagesStack.preloadIndex < overlayPages.length; i++) {
                                             if (!overlayPagesStack.visitedPages[overlayPagesStack.preloadIndex]) {
                                                 overlayPagesStack.visitedPages[overlayPagesStack.preloadIndex] = true
                                                 overlayPagesStack.visitedPagesChanged()
@@ -1441,6 +1488,13 @@ Scope {
                                         required property int index
                                         anchors.fill: parent
                                         active: Config.ready && (overlayPagesStack.visitedPages[index] === true)
+                                        // Match the windowed settings.qml: load the page the user
+                                        // is navigating to SYNCHRONOUSLY (one brief single-page
+                                        // hitch) and only background-load the others. Forcing async
+                                        // on the current page made the heavy *Config.qml pages
+                                        // (1k-3k lines) sit behind the loading spinner "for an
+                                        // eternity" on every nav click. Visited pages stay loaded,
+                                        // so the sync cost is paid at most once per page per session.
                                         asynchronous: index !== overlayCurrentPage
                                         source: overlayPages[index].component
 
@@ -1589,14 +1643,6 @@ Scope {
                         border.color: Appearance.angelEverywhere ? Appearance.angel.colCardBorder
                             : Appearance.inirEverywhere ? Appearance.inir.colBorder
                             : Appearance.m3colors.m3outlineVariant
-
-                        layer.enabled: Appearance.effectsEnabled && !Appearance.auroraEverywhere
-                        layer.effect: GE.DropShadow {
-                            color: Qt.rgba(0, 0, 0, 0.3)
-                            radius: 12
-                            samples: 13
-                            verticalOffset: 4
-                        }
 
                         ListView {
                             id: overlayResultsList

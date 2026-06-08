@@ -174,12 +174,12 @@ Singleton {
     // so it works even when Quickshell has not yet tracked the USB sink node.
     Process {
         id: wpctlIncrementSinkVolume
-        command: ["wpctl", "set-volume", "@DEFAULT_AUDIO_SINK@", "2%+"]
+        command: ["wpctl", "set-volume", "@DEFAULT_AUDIO_SINK@", "5%+"]
     }
 
     Process {
         id: wpctlDecrementSinkVolume
-        command: ["wpctl", "set-volume", "@DEFAULT_AUDIO_SINK@", "2%-"]
+        command: ["wpctl", "set-volume", "@DEFAULT_AUDIO_SINK@", "5%-"]
     }
 
     Process {
@@ -278,7 +278,7 @@ Singleton {
             wpctlIncrementSinkVolume.running = true
         if (!root.sink?.audio) return;
         const currentVolume = root.sink.audio.volume;
-        const step = currentVolume < 0.1 ? 0.01 : 0.02;
+        const step = currentVolume < 0.1 ? 0.03 : 0.05;
         root.sink.audio.volume = Math.min(root.hardMaxValue, currentVolume + step);
     }
 
@@ -288,7 +288,7 @@ Singleton {
             wpctlDecrementSinkVolume.running = true
         if (!root.sink?.audio) return;
         const currentVolume = root.sink.audio.volume;
-        const step = currentVolume <= 0.1 ? 0.01 : 0.02;
+        const step = currentVolume <= 0.1 ? 0.03 : 0.05;
         root.sink.audio.volume = Math.max(0, currentVolume - step);
     }
 

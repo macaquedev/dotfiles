@@ -212,7 +212,7 @@ Item { // Notification item area
                     textFormat: Text.RichText
                     text: {
                         if (!root.notificationObject) return ""
-                        return `<style>img{max-width:${expandedContentColumn.width}px;}</style>` +
+                        return `<style>img{max-width:100%;}</style>` +
                             `${NotificationUtils.processNotificationBody(notificationObject.body, notificationObject.appName || notificationObject.summary).replace(/\n/g, "<br/>")}`
                     }
 
@@ -308,7 +308,7 @@ Item { // Notification item area
                                     (contentItem.implicitWidth + leftPadding + rightPadding)
 
                                 onClicked: {
-                                    Quickshell.clipboardText = notificationObject?.body ?? ""
+                                    Quickshell.execDetached(["wl-copy", notificationObject?.body ?? ""])
                                     copyIcon.text = "inventory"
                                     copyIconTimer.restart()
                                 }

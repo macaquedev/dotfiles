@@ -303,7 +303,7 @@ Rectangle {
 
                 buttonRadius: Appearance.rounding.small
                 colBackground: Appearance.auroraEverywhere ? "transparent" : Appearance.colors.colSurfaceContainerHighest
-                colBackgroundHover: Appearance.auroraEverywhere ? Appearance.aurora.colSubSurface : Appearance.colors.colSurfaceContainerHighestHover
+                colBackgroundHover: Appearance.auroraEverywhere ? Appearance.aurora.colSubSurfaceHover : Appearance.colors.colSurfaceContainerHighestHover
                 colRipple: Appearance.auroraEverywhere ? Appearance.aurora.colSubSurfaceActive : Appearance.colors.colSurfaceContainerHighestActive            
 
                 contentItem: Item {
@@ -365,7 +365,7 @@ Rectangle {
                 colBackground: Appearance.angelEverywhere ? Appearance.angel.colGlassCard
                     : Appearance.auroraEverywhere ? "transparent" : Appearance.colors.colSurfaceContainerHighest
                 colBackgroundHover: Appearance.angelEverywhere ? Appearance.angel.colGlassCardHover
-                    : Appearance.auroraEverywhere ? Appearance.aurora.colSubSurface : Appearance.colors.colSurfaceContainerHighestHover
+                    : Appearance.auroraEverywhere ? Appearance.aurora.colSubSurfaceHover : Appearance.colors.colSurfaceContainerHighestHover
                 colRipple: Appearance.angelEverywhere ? Appearance.angel.colGlassCardActive
                     : Appearance.auroraEverywhere ? Appearance.aurora.colSubSurfaceActive : Appearance.colors.colSurfaceContainerHighestActive
 

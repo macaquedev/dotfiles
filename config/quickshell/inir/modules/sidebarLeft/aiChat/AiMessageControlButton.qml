@@ -11,7 +11,7 @@ GroupButton {
     baseWidth: height
     colBackgroundHover: Appearance.angelEverywhere ? Appearance.angel.colGlassCardHover
         : Appearance.inirEverywhere ? Appearance.inir.colLayer2Hover 
-        : Appearance.auroraEverywhere ? Appearance.aurora.colSubSurface : Appearance.colors.colSecondaryContainerHover
+        : Appearance.auroraEverywhere ? Appearance.aurora.colSubSurfaceHover : Appearance.colors.colSecondaryContainerHover
     colBackgroundActive: Appearance.angelEverywhere ? Appearance.angel.colGlassCardActive
         : Appearance.inirEverywhere ? Appearance.inir.colLayer2Active 
         : Appearance.auroraEverywhere ? Appearance.aurora.colSubSurfaceActive : Appearance.colors.colSecondaryContainerActive

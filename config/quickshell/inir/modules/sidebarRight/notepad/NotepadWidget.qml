@@ -43,6 +43,27 @@ Item {
         }
     }
 
+    // Guards programmatic text loads (tab switch / external reload) so they
+    // don't trigger the save timer and clobber the freshly-loaded tab.
+    property bool _loadingTab: false
+
+    function _loadActiveTab() {
+        root._loadingTab = true
+        textArea.text = Notepad.text
+        root._loadingTab = false
+    }
+
+    // The TextArea.text binding to Notepad.text breaks the moment the user
+    // types, so tab switches (currentTab change) and external reloads must be
+    // reflected manually — otherwise the old tab's text leaks into the new tab.
+    Connections {
+        target: Notepad
+        function onCurrentTabChanged() { root._loadActiveTab() }
+        function onTabsChanged() {
+            if (textArea.text !== Notepad.text) root._loadActiveTab()
+        }
+    }
+
     ColumnLayout {
         anchors.fill: parent
         anchors.margins: root.margin
@@ -277,7 +298,7 @@ Item {
                         : Appearance.colors.colOnSecondaryContainer
                     placeholderText: Translation.tr("Write your notes here...")
                     placeholderTextColor: Appearance.inirEverywhere ? Appearance.inir.colTextSecondary : Appearance.m3colors.m3outline
-                    text: Notepad.text
+                    Component.onCompleted: text = Notepad.text
                     selectByMouse: true
                     persistentSelection: true
                     activeFocusOnTab: true
@@ -295,6 +316,7 @@ Item {
                     }
 
                     onTextChanged: {
+                        if (root._loadingTab) return
                         saveTimer.restart()
                     }
 

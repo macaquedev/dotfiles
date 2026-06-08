@@ -53,3 +53,18 @@ include "config.d/90-user-extra.kdl"
 output "eDP-1" {
     scale 2
 }
+
+// ============================================================================
+// Layer rules added by iNiR (required for backdrop in overview)
+// ============================================================================
+layer-rule {
+    match namespace="quickshell:iiBackdrop"
+    place-within-backdrop true
+    opacity 1.0
+}
+
+layer-rule {
+    match namespace="quickshell:wBackdrop"
+    place-within-backdrop true
+    opacity 1.0
+}

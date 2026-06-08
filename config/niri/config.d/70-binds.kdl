@@ -294,7 +294,7 @@ binds {
     Ctrl+Mod+Space { spawn "__HOME__/.local/bin/inir" "mpris" "playPause"; }
     Mod+Alt+N      { spawn "__HOME__/.local/bin/inir" "mpris" "next"; }
     Mod+Alt+P      { spawn "__HOME__/.local/bin/inir" "mpris" "previous"; }
-    Mod+Shift+M    { spawn "__HOME__/.local/bin/vivaldi-open" "https://vle.cam.ac.uk/"; }
+    Mod+Shift+M    hotkey-overlay-title="Cambridge Moodle" { spawn "__HOME__/.local/bin/vivaldi-open" "https://vle.cam.ac.uk/"; }
     Mod+Shift+P    { spawn "__HOME__/.local/bin/inir" "mpris" "playPause"; }
     Mod+Shift+N    { spawn "__HOME__/.local/bin/inir" "mpris" "next"; }
     Mod+Shift+B    { spawn "__HOME__/.local/bin/inir" "mpris" "previous"; }

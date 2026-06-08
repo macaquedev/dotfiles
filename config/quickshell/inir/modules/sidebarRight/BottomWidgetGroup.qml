@@ -9,6 +9,7 @@ import qs.modules.sidebarRight.pomodoro
 import qs.modules.sidebarRight.notepad
 import qs.modules.sidebarRight.calculator
 import qs.modules.sidebarRight.sysmon
+import qs.modules.sidebarRight.screenTime
 import qs.modules.sidebarRight.events
 import QtQuick
 import QtQuick.Layouts
@@ -29,7 +30,7 @@ Rectangle {
     clip: true
 
     AngelPartialBorder { targetRadius: root.radius; coverage: 0.5 }
-    visible: implicitHeight > 0
+    visible: tabs.length > 0
     implicitHeight: (tabs.length > 0) ? (collapsed ? collapsedBottomWidgetGroupRow.implicitHeight : bottomWidgetGroupRow.implicitHeight) : 0
 
     Behavior on implicitHeight {
@@ -47,6 +48,7 @@ Rectangle {
         {"type": "calculator", "name": Translation.tr("Calc"), "icon": "calculate", "widget": calculatorWidget},
         {"type": "sysmon", "name": Translation.tr("System"), "icon": "monitor_heart", "widget": sysMonWidget},
         {"type": "timer", "name": Translation.tr("Timer"), "icon": "schedule", "widget": pomodoroWidget},
+        {"type": "screentime", "name": Translation.tr("Screen Time"), "icon": "av_timer", "widget": screenTimeWidget},
     ]
 
     property int configVersion: 0
@@ -93,7 +95,11 @@ Rectangle {
         return Config.options?.sidebar?.right?.enabledWidgets ?? ["calendar", "todo", "notepad", "calculator", "sysmon", "timer"]
     }
 
-    property var tabs: allTabs.filter(tab => enabledWidgets.includes(tab.type))
+    property var tabs: allTabs.filter(tab => {
+        if (tab.type === "screentime" && !(Config.options?.sidebar?.screenTime?.enable ?? false))
+            return false
+        return enabledWidgets.includes(tab.type)
+    })
 
     property string currentTabType: ""
     onSelectedTabChanged: {
@@ -126,14 +132,6 @@ Rectangle {
         }
     }
 
-    Behavior on implicitHeight {
-        enabled: Appearance.animationsEnabled
-        NumberAnimation {
-            duration: Appearance.animation.elementMove.duration
-            easing.type: Appearance.animation.elementMove.type
-                easing.bezierCurve: Appearance.animation.elementMove.bezierCurve
-        }
-    }
 
     function focusActiveItem() {
         // Find the current tab item in the StackLayout and force focus on its loaded widget
@@ -198,7 +196,9 @@ Rectangle {
         spacing: 15
 
         CalendarHeaderButton {
-            Layout.margins: 10
+            Layout.topMargin: 10
+            Layout.bottomMargin: 10
+            Layout.leftMargin: 25
             Layout.rightMargin: 0
             forceCircle: true
             downAction: () => {
@@ -250,7 +250,6 @@ Rectangle {
             Layout.fillWidth: false
             Layout.leftMargin: 10
             Layout.topMargin: 10
-            // Original width was tabBar.width (56). We need to account for leftMargin of 5 inside.
             width: tabBar.implicitWidth + 5
 
             // Collapse button (Fixed at top)
@@ -487,6 +486,15 @@ Rectangle {
     Component {
         id: pomodoroWidget
         PomodoroWidget {
+            anchors.fill: parent
+            anchors.margins: 5
+        }
+    }
+
+    // Screen Time component
+    Component {
+        id: screenTimeWidget
+        ScreenTimeWidget {
             anchors.fill: parent
             anchors.margins: 5
         }

@@ -51,7 +51,7 @@ Item {
                     colBackground: Appearance.inirEverywhere ? "transparent"
                         : Appearance.auroraEverywhere ? "transparent" : Appearance.colors.colTertiaryContainer
                     colBackgroundHover: Appearance.inirEverywhere ? Appearance.inir.colLayer1Hover
-                        : Appearance.auroraEverywhere ? Appearance.aurora.colSubSurface : (Appearance.colors.colTertiaryContainerHover ?? Appearance.colors.colTertiaryContainer)
+                        : Appearance.auroraEverywhere ? Appearance.aurora.colSubSurfaceHover : (Appearance.colors.colTertiaryContainerHover ?? Appearance.colors.colTertiaryContainer)
                     colRipple: Appearance.inirEverywhere ? Appearance.inir.colLayer1Active
                         : Appearance.auroraEverywhere ? Appearance.aurora.colSubSurfaceActive : (Appearance.colors.colTertiaryContainerActive ?? Appearance.colors.colTertiaryContainer)
                     opacity: GameMode.active && (Config.options?.sidebar?.widgets?.glance?.showGameMode ?? true) ? 1 : 0
@@ -82,7 +82,7 @@ Item {
                     colBackground: Appearance.inirEverywhere ? "transparent"
                         : Appearance.auroraEverywhere ? "transparent" : Appearance.colors.colPrimaryContainer
                     colBackgroundHover: Appearance.inirEverywhere ? Appearance.inir.colLayer1Hover
-                        : Appearance.auroraEverywhere ? Appearance.aurora.colSubSurface : Appearance.colors.colPrimaryContainerHover
+                        : Appearance.auroraEverywhere ? Appearance.aurora.colSubSurfaceHover : Appearance.colors.colPrimaryContainerHover
                     colRipple: Appearance.inirEverywhere ? Appearance.inir.colLayer1Active
                         : Appearance.auroraEverywhere ? Appearance.aurora.colSubSurfaceActive : Appearance.colors.colPrimaryContainerActive
                     opacity: Notifications.silent && (Config.options?.sidebar?.widgets?.glance?.showDnd ?? true) ? 1 : 0
@@ -121,7 +121,7 @@ Item {
                         buttonRadius: Appearance.inirEverywhere ? Appearance.inir.roundingSmall : Appearance.rounding.full
                         colBackground: "transparent"
                         colBackgroundHover: Appearance.inirEverywhere ? Appearance.inir.colLayer1Hover
-                            : Appearance.auroraEverywhere ? Appearance.aurora.colSubSurface : Appearance.colors.colLayer1Hover
+                            : Appearance.auroraEverywhere ? Appearance.aurora.colSubSurfaceHover : Appearance.colors.colLayer1Hover
                         colRipple: Appearance.inirEverywhere ? Appearance.inir.colLayer1Active
                             : Appearance.auroraEverywhere ? Appearance.aurora.colSubSurfaceActive : Appearance.colors.colLayer1Active
                         onClicked: Audio.toggleMute()
@@ -183,7 +183,7 @@ Item {
                     buttonRadius: Appearance.inirEverywhere ? Appearance.inir.roundingSmall : Appearance.rounding.full
                     colBackground: "transparent"
                     colBackgroundHover: Appearance.inirEverywhere ? Appearance.inir.colLayer1Hover
-                        : Appearance.auroraEverywhere ? Appearance.aurora.colSubSurface : Appearance.colors.colLayer1Hover
+                        : Appearance.auroraEverywhere ? Appearance.aurora.colSubSurfaceHover : Appearance.colors.colLayer1Hover
                     colRipple: Appearance.inirEverywhere ? Appearance.inir.colLayer1Active
                         : Appearance.auroraEverywhere ? Appearance.aurora.colSubSurfaceActive : Appearance.colors.colLayer1Active
 

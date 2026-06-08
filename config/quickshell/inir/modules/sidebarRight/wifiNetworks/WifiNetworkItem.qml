@@ -103,7 +103,7 @@ DialogListItem {
                     colBackground: Appearance.angelEverywhere ? Appearance.angel.colGlassCard
                         : Appearance.auroraEverywhere ? "transparent" : Appearance.colors.colLayer4
                     colBackgroundHover: Appearance.angelEverywhere ? Appearance.angel.colGlassCardHover
-                        : Appearance.auroraEverywhere ? Appearance.aurora.colSubSurface : Appearance.colors.colLayer4Hover
+                        : Appearance.auroraEverywhere ? Appearance.aurora.colSubSurfaceHover : Appearance.colors.colLayer4Hover
                     colRipple: Appearance.angelEverywhere ? Appearance.angel.colGlassCardActive
                         : Appearance.auroraEverywhere ? Appearance.aurora.colSubSurfaceActive : Appearance.colors.colLayer4Active
                     onClicked: {

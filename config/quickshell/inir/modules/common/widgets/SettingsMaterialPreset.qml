@@ -9,27 +9,27 @@ QtObject {
     id: root
 
     // ── Page layout ──
-    readonly property int pageSpacing: 14
+    readonly property int pageSpacing: Math.round(12 * Appearance.fontSizeScale)
 
     // ── Card (SettingsCardSection) ──
     readonly property int cardRadius: Appearance.angelEverywhere ? Appearance.angel.roundingNormal
         : Appearance.inirEverywhere ? Appearance.inir.roundingNormal
         : Appearance.rounding.normal
-    readonly property int cardPadding: 16
+    readonly property int cardPadding: Math.round(14 * Appearance.fontSizeScale)
 
     // ── Card header ──
     readonly property int headerRadius: Appearance.angelEverywhere ? Appearance.angel.roundingSmall
         : Appearance.inirEverywhere ? Appearance.inir.roundingSmall
         : Appearance.rounding.small
-    readonly property int headerPaddingX: 12
-    readonly property int headerPaddingY: 8
+    readonly property int headerPaddingX: Math.round(12 * Appearance.fontSizeScale)
+    readonly property int headerPaddingY: Math.round(7 * Appearance.fontSizeScale)
 
     // ── Group (SettingsGroup) ──
     readonly property int groupRadius: Appearance.angelEverywhere ? Appearance.angel.roundingSmall
         : Appearance.inirEverywhere ? Appearance.inir.roundingSmall
         : Appearance.rounding.small
-    readonly property int groupPadding: 14
-    readonly property int groupSpacing: 8
+    readonly property int groupPadding: Math.round(12 * Appearance.fontSizeScale)
+    readonly property int groupSpacing: Math.round(7 * Appearance.fontSizeScale)
 
     // ── Colors ──
     // In angel/aurora, cards are more transparent to let the content area's
@@ -47,9 +47,9 @@ QtObject {
 
     readonly property color groupColor: Appearance.angelEverywhere
         ? ColorUtils.transparentize(Appearance.colors.colLayer2Base, Appearance.angel.popupTransparentize * 0.6)
-        : Appearance.inirEverywhere ? Appearance.inir.colLayer2
-        : Appearance.auroraEverywhere ? ColorUtils.transparentize(Appearance.colors.colLayer2Base, 0.80)
-        : Appearance.colors.colLayer2
+        : Appearance.inirEverywhere ? ColorUtils.transparentize(Appearance.inir.colLayer2, 0.45)
+        : Appearance.auroraEverywhere ? ColorUtils.transparentize(Appearance.colors.colLayer2Base, 0.88)
+        : ColorUtils.transparentize(Appearance.colors.colLayer2, 0.4)
     readonly property color groupBorderColor: Appearance.angelEverywhere
         ? Appearance.angel.colBorderSubtle
         : Appearance.inirEverywhere ? Appearance.inir.colBorderSubtle
@@ -91,7 +91,7 @@ QtObject {
 
     // ── Navigation rail ──
     readonly property int navWidth: 180
-    readonly property int navItemHeight: 40
-    readonly property int navCategorySpacing: 12
+    readonly property int navItemHeight: Math.round(34 * Appearance.fontSizeScale)
+    readonly property int navCategorySpacing: Math.round(10 * Appearance.fontSizeScale)
     readonly property int navItemSpacing: 2
 }

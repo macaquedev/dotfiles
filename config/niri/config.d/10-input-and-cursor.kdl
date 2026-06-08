@@ -29,7 +29,7 @@ input {
         // numlock
 
         // How quickly held keys start repeating (ms) and how fast (chars/s).
-        repeat-delay 250
+        repeat-delay 200
         repeat-rate 50
     }
 

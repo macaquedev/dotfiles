@@ -40,8 +40,62 @@ Item {
         ? (maximumHeight > 0 ? Math.min(listView.contentHeight + 8, maximumHeight) : (listView.contentHeight + 8))
         : barSize
 
+    // Per-item slot pitch in horizontal mode (icon + spacing), used to decide
+    // how many items fit before the focused/running ones must be prioritised.
+    readonly property real itemPitch: barSize + listView.spacing
+    // Visible width available for items in horizontal mode (slot width minus the
+    // 8px the implicitWidth accounts for). Drives focus-priority trimming below.
+    readonly property real availableWidth: vertical ? -1 : Math.max(0, root.width - 8)
+
     // ─── Dock Items Model (mirrored from DockApps logic) ─────────────
+    // `dockItems` is the full model; `visibleDockItems` is what the ListView
+    // renders after horizontal-overflow trimming (focused + running kept,
+    // pinned-only shed first when space runs out).
     property var dockItems: []
+
+    // Horizontal-overflow trimming: when the slot can't fit every item, shed the
+    // least-relevant ones first — pinned apps that aren't running (pure
+    // shortcuts) — while always keeping running and focused apps. The focused
+    // app is guaranteed visible. Vertical mode scrolls instead, so it's a no-op.
+    readonly property var visibleDockItems: {
+        const items = root.dockItems
+        if (root.vertical || !(root.availableWidth > 0) || items.length === 0)
+            return items
+        const pitch = root.itemPitch > 0 ? root.itemPitch : root.barSize
+        const maxFit = Math.max(1, Math.floor((root.availableWidth + listView.spacing) / pitch))
+        if (items.length <= maxFit)
+            return items
+        // Rank: running/focused stay; pinned-only (running === false) are the
+        // first to drop. Keep original order otherwise (stable, no shuffle).
+        const keep = []
+        const droppable = []
+        for (const it of items) {
+            if (it.section === "separator") continue
+            if (it.running === false && it.focused !== true) droppable.push(it)
+            else keep.push(it)
+        }
+        // If even the must-keep set overflows, trim it too (oldest order first),
+        // but never drop the focused item.
+        let result
+        if (keep.length >= maxFit) {
+            const focused = keep.filter(it => it.focused === true)
+            const rest = keep.filter(it => it.focused !== true)
+            result = focused.concat(rest).slice(0, maxFit)
+        } else {
+            const room = maxFit - keep.length
+            result = keep.concat(droppable.slice(0, room))
+        }
+        // Re-sort kept items back into their original model order so the bar
+        // doesn't reorder visually (focus only affects WHICH items show).
+        const orderOf = new Map(items.map((it, i) => [it.uniqueId, i]))
+        result.sort((a, b) => orderOf.get(a.uniqueId) - orderOf.get(b.uniqueId))
+        // Drop a now-orphaned leading/trailing separator.
+        return result.filter((it, i) => {
+            if (it.section !== "separator") return true
+            const prev = result[i - 1], next = result[i + 1]
+            return prev && next && prev.section !== "separator" && next.section !== "separator"
+        })
+    }
 
     readonly property bool separatePinnedFromRunning: Config.options?.dock?.separatePinnedFromRunning ?? true
     onSeparatePinnedFromRunningChanged: rebuildDockItems()
@@ -71,33 +125,78 @@ Item {
         rebuildTimer.restart()
     }
 
+    function _toplevelLiveKey(toplevel: var): string {
+        if (!toplevel) return ""
+        if (toplevel._sourceKey !== undefined && toplevel._sourceKey !== null)
+            return String(toplevel._sourceKey)
+        return `${toplevel.appId || ""}::${toplevel.title || ""}`
+    }
+
+    // Compare toplevels by stable identifier (sourceKey / appId+title) instead of
+    // object reference — sortToplevels() rebuilds enriched objects on every
+    // focus change, so reference comparison would always trigger a rebuild and
+    // shake the taskbar layout for non-structural updates.
     function _dockItemsEqual(oldItems: var, newItems: var): bool {
         if (oldItems.length !== newItems.length) return false
         for (let i = 0; i < oldItems.length; i++) {
             const o = oldItems[i], n = newItems[i]
-            if (o.uniqueId !== n.uniqueId || o.pinned !== n.pinned || o.section !== n.section) return false
+            if (o.uniqueId !== n.uniqueId || o.pinned !== n.pinned || o.section !== n.section || o.focused !== n.focused) return false
             const oTL = o.toplevels, nTL = n.toplevels
             if (oTL.length !== nTL.length) return false
             for (let j = 0; j < oTL.length; j++) {
-                if (oTL[j] !== nTL[j]) return false
+                if (root._toplevelLiveKey(oTL[j]) !== root._toplevelLiveKey(nTL[j])) return false
+                if (!!oTL[j].activated !== !!nTL[j].activated) return false
             }
         }
         return true
     }
 
+    // App id of the currently focused window (lowercased). Used to flag the
+    // focused item so it's prioritised for visibility when space runs out.
+    readonly property string focusedAppId: (ToplevelManager.activeToplevel?.appId ?? "").toLowerCase()
+
     function _doRebuildDockItems(): void {
         const pinnedApps = Config.options?.dock?.pinnedApps ?? [];
         const ignoredRegexes = _getIgnoredRegexes();
         const separate = root.separatePinnedFromRunning;
+        const focusedId = root.focusedAppId;
 
-        const allToplevels = CompositorService.sortedToplevels && CompositorService.sortedToplevels.length
-                ? CompositorService.sortedToplevels
-                : ToplevelManager.toplevels.values;
+        // Source of truth (mirrors DockApps): on Niri, sortedToplevels is
+        // built from niri's authoritative `windows` list and is the only
+        // valid source — falling back to ToplevelManager would resurrect
+        // stale Wayland foreign-toplevel handles when an app fails to release
+        // its handle on close (zen, electron, AppImages…), the exact ghost
+        // bug we want to avoid. Off-Niri, fall back to ToplevelManager only
+        // when sortedToplevels hasn't been populated.
+        const sorted = CompositorService.sortedToplevels;
+        const sortedHasItems = sorted && sorted.length > 0;
+        const niriAuthoritative = CompositorService.isNiri;
+        const allToplevels = niriAuthoritative
+                ? (sorted ?? [])
+                : (sortedHasItems ? sorted : ToplevelManager.toplevels.values);
+
+        // Off-Niri ghost guard: when using enriched `sorted`, cross-check it
+        // against live ToplevelManager and drop entries with no live handle.
+        // On Niri this is redundant (sortToplevels already filters ghosts).
+        const liveToplevelCounts = new Map();
+        const crossCheck = sortedHasItems && !niriAuthoritative;
+        if (crossCheck) {
+            for (const tl of ToplevelManager.toplevels.values) {
+                const key = root._toplevelLiveKey(tl);
+                liveToplevelCounts.set(key, (liveToplevelCounts.get(key) ?? 0) + 1);
+            }
+        }
 
         const runningAppsMap = new Map();
         for (const toplevel of allToplevels) {
             if (!toplevel.appId || toplevel.appId === "" || toplevel.appId === "null") continue;
             if (ignoredRegexes.some(re => re.test(toplevel.appId))) continue;
+            if (crossCheck) {
+                const key = root._toplevelLiveKey(toplevel);
+                const count = liveToplevelCounts.get(key) ?? 0;
+                if (count <= 0) continue;
+                liveToplevelCounts.set(key, count - 1);
+            }
 
             const lowerAppId = toplevel.appId.toLowerCase();
             if (!runningAppsMap.has(lowerAppId)) {
@@ -125,6 +224,8 @@ Item {
                     appId: lowerAppId,
                     toplevels: runningEntry?.toplevels ?? [],
                     pinned: true,
+                    running: (runningEntry?.toplevels?.length ?? 0) > 0,
+                    focused: focusedId === lowerAppId,
                     originalAppId: appId,
                     section: "pinned",
                     order: order++
@@ -144,12 +245,18 @@ Item {
                 });
             }
 
-            for (const [lowerAppId, entry] of runningAppsMap) {
+            // Stable alphabetical order so unpinned apps don't shuffle as
+            // sortedToplevels reorders on focus/layout changes.
+            const unpinned = Array.from(runningAppsMap.entries())
+                .sort((a, b) => a[0].localeCompare(b[0]));
+            for (const [lowerAppId, entry] of unpinned) {
                 values.push({
                     uniqueId: "app-" + lowerAppId,
                     appId: lowerAppId,
                     toplevels: entry.toplevels,
                     pinned: false,
+                    running: true,
+                    focused: focusedId === lowerAppId,
                     originalAppId: entry.appId,
                     section: "open",
                     order: order++
@@ -167,6 +274,8 @@ Item {
                         appId: lowerAppId,
                         toplevels: [],
                         pinned: true,
+                        running: false,
+                        focused: false,
                         originalAppId: appId,
                         section: "pinned",
                         order: order++
@@ -192,6 +301,8 @@ Item {
             for (const [lowerAppId, entry] of runningAppsMap) {
                 sortedRunningApps.push({ lowerAppId, entry });
             }
+            // Pinned+running first (by pinned order), then unpinned alphabetically
+            // — stable across sortedToplevels reorderings caused by focus changes.
             sortedRunningApps.sort((a, b) => {
                 const aIndex = pinnedApps.findIndex(p => p.toLowerCase() === a.lowerAppId);
                 const bIndex = pinnedApps.findIndex(p => p.toLowerCase() === b.lowerAppId);
@@ -200,7 +311,7 @@ Item {
                 if (aIsPinned && bIsPinned) return aIndex - bIndex;
                 if (aIsPinned) return -1;
                 if (bIsPinned) return 1;
-                return 0;
+                return a.lowerAppId.localeCompare(b.lowerAppId);
             });
 
             for (const {lowerAppId, entry} of sortedRunningApps) {
@@ -209,6 +320,8 @@ Item {
                     appId: lowerAppId,
                     toplevels: entry.toplevels,
                     pinned: pinnedApps.some(p => p.toLowerCase() === lowerAppId),
+                    running: entry.toplevels.length > 0,
+                    focused: focusedId === lowerAppId,
                     originalAppId: entry.appId,
                     section: "running",
                     order: order++
@@ -290,7 +403,7 @@ Item {
 
         model: ScriptModel {
             objectProp: "uniqueId"
-            values: root.dockItems
+            values: root.visibleDockItems
         }
 
         delegate: BarTaskbarButton {

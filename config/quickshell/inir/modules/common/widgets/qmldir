@@ -3,6 +3,7 @@ AddressBreadcrumb 1.0 AddressBreadcrumb.qml
 AngelAccentBar 1.0 AngelAccentBar.qml
 AngelBackground 1.0 AngelBackground.qml
 AngelPartialBorder 1.0 AngelPartialBorder.qml
+BarModuleOrderEditor 1.0 BarModuleOrderEditor.qml
 ButtonGroup 1.0 ButtonGroup.qml
 CalendarView 1.0 CalendarView.qml
 CavaProcess 1.0 CavaProcess.qml
@@ -92,6 +93,7 @@ singleton SettingsMaterialPreset 1.0 SettingsMaterialPreset.qml
 singleton SettingsSearchRegistry 1.0 SettingsSearchRegistry.qml
 SettingsSwitch 1.0 SettingsSwitch.qml
 SineCookie 1.0 SineCookie.qml
+SmartAppIcon 1.0 SmartAppIcon.qml
 StyledBlurEffect 1.0 StyledBlurEffect.qml
 StyledComboBox 1.0 StyledComboBox.qml
 StyledDropShadow 1.0 StyledDropShadow.qml

@@ -136,7 +136,8 @@ Item {
         id: sidebarRightBackground
 
         anchors.fill: parent
-        implicitHeight: parent.height - Appearance.sizes.hyprlandGapsOut * 2
+        // Clamp >= 0: preload parent.height is 0 here, raw subtraction went negative and froze layout.
+        implicitHeight: Math.max(0, parent.height - Appearance.sizes.hyprlandGapsOut * 2)
         implicitWidth: sidebarWidth - Appearance.sizes.hyprlandGapsOut * 2
         property bool cardStyle: Config.options?.sidebar?.cardStyle ?? false
         readonly property bool angelEverywhere: Appearance.angelEverywhere

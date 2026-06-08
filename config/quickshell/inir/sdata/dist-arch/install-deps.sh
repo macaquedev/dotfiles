@@ -385,10 +385,8 @@ install_font_fallback() {
   return 1
 }
 
-# Steam theming — only install millennium-bin if steam is already present
-if pacman -Q steam >/dev/null 2>&1 || command -v steam >/dev/null 2>&1; then
-  AUR_PACKAGES+=(millennium-bin)
-fi
+# Millennium (Steam theming) is opt-in — not installed automatically.
+# Users who want Steam Material-Theme can install millennium-bin manually.
 
 # Add other AUR packages based on flags
 if $INSTALL_FONTS; then
@@ -473,7 +471,7 @@ tui_info "Registering dependencies with pacman..."
 _meta_dir="./sdata/dist-arch/inir-deps"
 if [[ -f "$_meta_dir/PKGBUILD" ]]; then
   # Update pkgver from VERSION file
-  _inir_ver="$(cat ./VERSION 2>/dev/null || echo '2.25.2')"
+  _inir_ver="$(cat ./VERSION 2>/dev/null || echo '2.26.0')"
   sed -i "s/^pkgver=.*/pkgver=${_inir_ver}/" "$_meta_dir/PKGBUILD"
 
   (
@@ -512,7 +510,7 @@ unset _meta_dir _inir_ver
 # See: https://github.com/snowarch/iNiR/issues/93
 #####################################################################################
 if command -v qs >/dev/null 2>&1; then
-  qs_abi_output="$(qs --version 2>&1 || true)"
+  qs_abi_output="$(timeout 5 env QT_QPA_PLATFORM=offscreen qs --version 2>&1 || true)"
   if echo "$qs_abi_output" | grep -qiE "built against Qt|Qt.*mismatch|incompatible Qt"; then
     log_warning "Qt/Quickshell ABI mismatch detected!"
     log_warning "Quickshell was built against a different Qt version than what is installed."

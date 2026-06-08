@@ -63,7 +63,14 @@ Singleton {
         _save()
     }
 
+    // Guard: FileView fires onLoaded after our own setText() write (it watches
+    // the file). Without this, a self-write reload re-parses a stale/cached
+    // buffer and reassigns tabs/currentTab mid-edit, dropping freshly added
+    // tabs or their text. Skip the reload that our own save triggers.
+    property bool _saving: false
+
     function _save() {
+        _saving = true
         tabsFileView.setText(JSON.stringify({ currentTab: currentTab, tabs: tabs }))
     }
 
@@ -79,6 +86,7 @@ Singleton {
         path: Qt.resolvedUrl(root.tabsFilePath)
 
         onLoaded: {
+            if (root._saving) { root._saving = false; return }
             try {
                 const data = JSON.parse(tabsFileView.text())
                 if (Array.isArray(data.tabs) && data.tabs.length > 0) {
@@ -88,23 +96,26 @@ Singleton {
                 }
             } catch (e) {}
             // Invalid/empty JSON — try legacy migration
-            legacyFileView.reload()
+            legacyFileView.path = Qt.resolvedUrl(root.legacyFilePath)
         }
 
         onLoadFailed: (error) => {
             if (error === FileViewError.FileNotFound) {
                 // Try migrating from legacy notepad.txt
-                legacyFileView.reload()
+                legacyFileView.path = Qt.resolvedUrl(root.legacyFilePath)
             } else {
                 console.log("[Notepad] Error loading tabs file:", error)
             }
         }
     }
 
-    // Legacy notepad.txt migration
+    // Legacy notepad.txt migration. No declarative `path`: if set eagerly the
+    // FileView auto-loads on startup, races the tabs JSON load, and its onLoaded
+    // unconditionally resets tabs to a single legacy note and saves — wiping every
+    // extra tab on every restart. Only load it on demand when the tabs file is
+    // genuinely missing/invalid (path assigned above).
     FileView {
         id: legacyFileView
-        path: Qt.resolvedUrl(root.legacyFilePath)
 
         onLoaded: {
             const content = legacyFileView.text()

@@ -77,7 +77,7 @@ Item {
     DeferredPanelLoader { identifier: "iiScreenCorners"; component: ScreenCorners {} }
     DeferredPanelLoader { identifier: "iiWallpaperSelector"; component: WallpaperSelector {} }
     DeferredPanelLoader { identifier: "iiCoverflowSelector"; component: WallpaperCoverflow {} }
-    DeferredPanelLoader { identifier: "iiClipboard"; component: ClipboardModule.ClipboardPanel {} }
+    DeferredPanelLoader { identifier: "iiClipboard"; extraCondition: Config.options?.panelFamily !== "waffle"; component: ClipboardModule.ClipboardPanel {} }
     DeferredPanelLoader { identifier: "iiRecordingOsd"; component: RecordingOsd {} }
 
     // Waffle Clipboard - handles IPC when panelFamily === "waffle"

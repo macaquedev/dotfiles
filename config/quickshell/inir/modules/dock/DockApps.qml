@@ -314,7 +314,18 @@ Item {
         rebuildTimer.restart()
     }
 
-    // Skip model update when structure hasn't changed (same apps, order, toplevels)
+    function _toplevelLiveKey(toplevel) {
+        if (!toplevel) return ""
+        if (toplevel._sourceKey !== undefined && toplevel._sourceKey !== null)
+            return String(toplevel._sourceKey)
+        return `${toplevel.appId || ""}::${toplevel.title || ""}`
+    }
+
+    // Skip model update when structure hasn't changed (same apps, order, toplevels).
+    // Compare toplevels by stable identifier (sourceKey / appId+title) instead of
+    // object reference — sortToplevels() on Niri builds fresh enriched objects on
+    // every focus change, so reference comparison would always trigger a rebuild
+    // and shake the dock layout for non-structural updates.
     function _dockItemsEqual(oldItems, newItems): bool {
         if (oldItems.length !== newItems.length) return false
         for (let i = 0; i < oldItems.length; i++) {
@@ -323,17 +334,11 @@ Item {
             const oTL = o.toplevels, nTL = n.toplevels
             if (oTL.length !== nTL.length) return false
             for (let j = 0; j < oTL.length; j++) {
-                if (oTL[j] !== nTL[j]) return false
+                if (root._toplevelLiveKey(oTL[j]) !== root._toplevelLiveKey(nTL[j])) return false
+                if (!!oTL[j].activated !== !!nTL[j].activated) return false
             }
         }
         return true
-    }
-
-    function _toplevelLiveKey(toplevel) {
-        if (!toplevel) return ""
-        if (toplevel._sourceKey !== undefined && toplevel._sourceKey !== null)
-            return String(toplevel._sourceKey)
-        return `${toplevel.appId || ""}::${toplevel.title || ""}`
     }
 
     function _doRebuildDockItems() {
@@ -341,14 +346,36 @@ Item {
         const ignoredRegexes = _getIgnoredRegexes();
         const separatePinnedFromRunning = root.separatePinnedFromRunning;
 
-        // Get all open windows
+        // Source of truth for what's actually open:
+        //   • On Niri: CompositorService.sortedToplevels is built from niri's
+        //     authoritative `windows` array, so we trust it absolutely—even when
+        //     it's empty (means: no windows). Falling back to ToplevelManager
+        //     would resurrect stale Wayland foreign-toplevel handles (ghosts) that
+        //     don't release cleanly when an app closes (zen, electron, etc.).
+        //   • Off Niri (Hyprland / others): use sorted when populated, fall back
+        //     to ToplevelManager only as a last resort. There's no compositor-
+        //     authoritative source to validate against on those.
+        // Note: on Niri there is a sub-second startup gap where `isNiri` is
+        // already true but `windows` (and therefore `sortedToplevels`) is
+        // still empty. During that window the dock will be empty even if
+        // ToplevelManager already lists handles for apps started before the
+        // shell. That's intentional — trusting ToplevelManager during the
+        // gap is what brings the ghost-toplevel bug back.
         const tmToplevels = ToplevelManager.toplevels.values;
         const sorted = CompositorService.sortedToplevels;
-        const useSorted = sorted && sorted.length > 0;
-        const allToplevels = useSorted ? sorted : tmToplevels;
+        const sortedHasItems = sorted && sorted.length > 0;
+        const niriAuthoritative = CompositorService.isNiri;
+        const allToplevels = niriAuthoritative
+            ? (sorted ?? [])
+            : (sortedHasItems ? sorted : tmToplevels);
 
+        // Off-Niri ghost guard: when we use enriched `sorted` items, cross-check
+        // them against the live ToplevelManager to drop entries that no longer
+        // exist there. On Niri this is redundant (sortToplevels already drops
+        // ghosts).
         const liveToplevelCounts = new Map();
-        if (useSorted) {
+        const crossCheck = sortedHasItems && !niriAuthoritative;
+        if (crossCheck) {
             for (const tl of tmToplevels) {
                 const key = root._toplevelLiveKey(tl);
                 liveToplevelCounts.set(key, (liveToplevelCounts.get(key) ?? 0) + 1);
@@ -360,7 +387,7 @@ Item {
         for (const toplevel of allToplevels) {
             if (!toplevel.appId) continue;
             if (toplevel.appId === "" || toplevel.appId === "null") continue;
-            if (useSorted) {
+            if (crossCheck) {
                 const key = root._toplevelLiveKey(toplevel);
                 const count = liveToplevelCounts.get(key) ?? 0;
                 if (count <= 0) continue;
@@ -420,8 +447,11 @@ Item {
                 });
             }
 
-            // Add unpinned running apps
-            for (const [lowerAppId, entry] of runningAppsMap) {
+            // Add unpinned running apps in a stable alphabetical order so they
+            // don't shuffle as sortedToplevels reorders on focus/layout changes.
+            const unpinned = Array.from(runningAppsMap.entries())
+                .sort((a, b) => a[0].localeCompare(b[0]));
+            for (const [lowerAppId, entry] of unpinned) {
                 values.push({
                     uniqueId: "app-" + lowerAppId,
                     appId: lowerAppId,
@@ -478,7 +508,11 @@ Item {
                     entry: entry
                 });
             }
-            // Sort to keep consistency: pinned+running apps first (by pinned order), then unpinned
+            // Sort to keep consistency: pinned+running apps first (by pinned order),
+            // then unpinned apps in a STABLE alphabetical order. Without the
+            // alphabetical fallback, unpinned apps inherit the iteration order of
+            // sortedToplevels which can shuffle as windows are focused / moved
+            // between columns, causing the dock icons to dance.
             sortedRunningApps.sort((a, b) => {
                 const aIndex = pinnedApps.findIndex(p => p.toLowerCase() === a.lowerAppId);
                 const bIndex = pinnedApps.findIndex(p => p.toLowerCase() === b.lowerAppId);
@@ -486,13 +520,11 @@ Item {
                 const aIsPinned = aIndex !== -1;
                 const bIsPinned = bIndex !== -1;
 
-                // Pinned apps first (in their pinned order)
                 if (aIsPinned && bIsPinned) return aIndex - bIndex;
                 if (aIsPinned) return -1;
                 if (bIsPinned) return 1;
 
-                // Unpinned apps maintain their order
-                return 0;
+                return a.lowerAppId.localeCompare(b.lowerAppId);
             });
 
             for (const {lowerAppId, entry} of sortedRunningApps) {
@@ -555,14 +587,42 @@ Item {
         implicitHeight: contentHeight
         interactive: false // Dock should never flick/scroll — all items visible
 
+        // Container resizes organically as apps enter/leave; the orientation-aware
+        // delegate transitions below grow/shrink each item in place so the dock
+        // never jump-cuts when an app opens or closes.
         Behavior on implicitWidth {
             enabled: Appearance.animationsEnabled
-            animation: NumberAnimation { duration: Appearance.animation.elementMoveFast.duration; easing.type: Appearance.animation.elementMoveFast.type; easing.bezierCurve: Appearance.animation.elementMoveFast.bezierCurve }
+            animation: NumberAnimation { duration: Appearance.animation.elementResize.duration; easing.type: Appearance.animation.elementResize.type; easing.bezierCurve: Appearance.animation.elementResize.bezierCurve }
         }
         Behavior on implicitHeight {
             enabled: Appearance.animationsEnabled
-            animation: NumberAnimation { duration: Appearance.animation.elementMoveFast.duration; easing.type: Appearance.animation.elementMoveFast.type; easing.bezierCurve: Appearance.animation.elementMoveFast.bezierCurve }
+            animation: NumberAnimation { duration: Appearance.animation.elementResize.duration; easing.type: Appearance.animation.elementResize.type; easing.bezierCurve: Appearance.animation.elementResize.bezierCurve }
         }
+
+        // ─── Item entrance / exit transitions ───
+        // The new/leaving item itself fades+scales in place. Neighbours are
+        // intentionally NOT animated (no `displaced` / `move` transitions): the
+        // user requested that other dock items don't slide when a new app opens
+        // or closes. The container's implicitWidth Behavior above still smooths
+        // the overall dock resize, so the layout shifts feel continuous without
+        // visible per-item travel. Animations are also suppressed during a
+        // manual reorder drag so they never fight the drag transforms.
+        readonly property bool _animOk: Appearance.animationsEnabled && !root.dragActive
+
+        add: Transition {
+            enabled: listView._animOk
+            NumberAnimation { properties: "opacity,scale"; from: 0; to: 1; duration: Appearance.animation.elementMoveEnter.duration; easing.type: Easing.BezierSpline; easing.bezierCurve: Appearance.animationCurves.emphasizedDecel }
+        }
+        remove: Transition {
+            enabled: listView._animOk
+            NumberAnimation { properties: "opacity,scale"; to: 0; duration: Appearance.animation.elementMoveExit.duration; easing.type: Appearance.animation.elementMoveExit.type; easing.bezierCurve: Appearance.animation.elementMoveExit.bezierCurve }
+        }
+        // Neighbour displacement deliberately disabled — see comment above.
+        displaced: Transition {}
+        addDisplaced: Transition {}
+        removeDisplaced: Transition {}
+        move: Transition {}
+        moveDisplaced: Transition {}
 
         model: ScriptModel {
             objectProp: "uniqueId"

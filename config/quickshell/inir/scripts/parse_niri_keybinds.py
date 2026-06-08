@@ -178,11 +178,9 @@ IPC_MAP = {
     ('overview', 'toggle'): 'iNiR Overview',
     ('clipboard', 'toggle'): 'Clipboard',
     ('lock', 'activate'): 'Lock screen',
-    ('lock', 'focus'): 'Re-focus lock screen',
     ('region', 'screenshot'): 'Screenshot region',
     ('region', 'ocr'): 'OCR region',
     ('region', 'search'): 'Reverse image search',
-    ('region', 'recordWithSound'): 'Screen record region',
     ('wallpaperSelector', 'toggle'): 'Wallpaper selector',
     ('settings', 'open'): 'Settings',
     ('cheatsheet', 'toggle'): 'Cheatsheet',
@@ -245,21 +243,12 @@ def generate_comment(action: str) -> str:
     # Direct niri actions
     if action in ACTION_MAP:
         return ACTION_MAP[action]
-
-    # Keyboard layout switch
-    if action.startswith('switch-layout'):
-        return 'Switch keyboard layout'
-
+    
     # Focus/move workspace N
-    ws_match = re.match(r'(focus-workspace|move-column-to-workspace|move-window-to-workspace)\s+(\d+)', action)
+    ws_match = re.match(r'(focus-workspace|move-column-to-workspace)\s+(\d+)', action)
     if ws_match:
-        verb = ws_match.group(1)
-        n = ws_match.group(2)
-        if verb == 'focus-workspace':
-            return f'Focus workspace {n}'
-        if verb == 'move-column-to-workspace':
-            return f'Move to workspace {n}'
-        return f'Send window to workspace {n}'
+        ws_action = 'Focus' if 'focus' in ws_match.group(1) else 'Move to'
+        return f'{ws_action} workspace {ws_match.group(2)}'
     
     # Parameterized resize actions: set-column-width "-10%", set-window-height "+10%"
     resize_match = re.match(r'set-(column-width|window-height)\s+"([+-]\d+%?)"', action)
@@ -275,23 +264,6 @@ def generate_comment(action: str) -> str:
         if inir_action:
             target, func = inir_action
             return IPC_MAP.get((target, func), f'{target} {func}')
-
-        # Custom scripts and specific apps (checked before generic heuristics
-        # so e.g. vivaldi-open to the VLE isn't mislabelled as just "Browser").
-        if 'niri-stack-nav' in action:
-            return 'Focus down' if 'down' in action else 'Focus up'
-        if 'gemini-screenshot' in action:
-            return 'Ask Gemini (screenshot)'
-        if 'vle.cam.ac.uk' in action:
-            return 'Cambridge VLE'
-        if 'elecwhat' in action:
-            return 'WhatsApp'
-        if 'vesktop' in action or 'discord' in action:
-            return 'Discord'
-        if re.search(r'spawn\s+"emacs"', action):
-            return 'Emacs'
-        if re.search(r'spawn\s+"sioyek"', action):
-            return 'Sioyek (PDF)'
 
         ipc_match = re.search(r'ipc.*call.*"(\w+)".*"(\w+)"', action)
         if ipc_match:
@@ -344,7 +316,7 @@ def categorize_keybind(kb: dict) -> str:
     action = kb.get('action', '').lower()
     
     # System
-    if any(x in comment for x in ['niri overview', 'quit niri', 'inhibit', 'power off', 'hotkey overlay', 'keyboard layout']):
+    if any(x in comment for x in ['niri overview', 'quit niri', 'inhibit', 'power off', 'hotkey overlay']):
         return 'System'
     
     # iNiR Shell
@@ -370,13 +342,12 @@ def categorize_keybind(kb: dict) -> str:
     if 'altswitcher' in action:
         return 'Window Switcher'
     
-    # Screenshots (and screen recording)
-    if any(x in comment for x in ['screenshot', 'ocr', 'image search', 'record']):
+    # Screenshots
+    if any(x in comment for x in ['screenshot', 'ocr', 'image search']):
         return 'Screenshots'
-
+    
     # Applications
-    if any(x in comment for x in ['terminal', 'file manager', 'browser',
-                                  'whatsapp', 'discord', 'emacs', 'sioyek', 'cambridge vle']):
+    if any(x in comment for x in ['terminal', 'file manager', 'browser']):
         return 'Applications'
     if any(x in action for x in TERMINALS + FILE_MANAGERS + BROWSERS):
         return 'Applications'

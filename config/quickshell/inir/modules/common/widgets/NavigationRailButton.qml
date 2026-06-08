@@ -121,9 +121,9 @@ TabButton {
                 : Appearance.auroraEverywhere
                     ? (toggled ?
                         root.showToggledHighlight ?
-                            (root.down ? Appearance.aurora.colSubSurfaceActive : root.hovered ? Appearance.aurora.colSubSurface : Appearance.aurora.colElevatedSurface)
+                            (root.down ? Appearance.aurora.colSubSurfaceActive : root.hovered ? Appearance.aurora.colSubSurfaceHover : Appearance.aurora.colElevatedSurface)
                             : "transparent" :
-                        (root.down ? Appearance.aurora.colSubSurfaceActive : root.hovered ? Appearance.aurora.colSubSurface : "transparent"))
+                        (root.down ? Appearance.aurora.colSubSurfaceActive : root.hovered ? Appearance.aurora.colSubSurfaceHover : "transparent"))
                     : (toggled ?
                         root.showToggledHighlight ?
                             (root.down ? Appearance.colors.colSecondaryContainerActive : root.hovered ? Appearance.colors.colSecondaryContainerHover : Appearance.colors.colSecondaryContainer)

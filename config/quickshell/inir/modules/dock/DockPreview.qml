@@ -34,6 +34,11 @@ PopupWindow {
         root.visible = false
     }
 
+    onAnchorItemChanged: {
+        if (root.visible && !root.anchorItem)
+            root.close()
+    }
+
     function open(): void {
         marginBehavior.enabled = true
         root.visible = true
@@ -73,10 +78,20 @@ PopupWindow {
         return "id:" + (toplevel.appId ?? "") + ":" + (toplevel.title ?? "")
     }
 
-    // Auto-close when the last window is gone
+    // Auto-close when the last window is gone.
+    // Also watch anchorItem.toplevels directly because the JS optional-chain
+    // in `liveToplevels` breaks QML's binding tracking.
     onLiveToplevelsChanged: {
         if (root.visible && (liveToplevels?.length ?? 0) === 0)
             root.close()
+    }
+    Connections {
+        target: root.anchorItem
+        enabled: root.visible
+        function onToplevelsChanged() {
+            if ((root.anchorItem?.toplevels?.length ?? 0) === 0)
+                root.close()
+        }
     }
 
     ///////////////////// Internals ////////////////////

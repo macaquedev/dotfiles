@@ -126,6 +126,17 @@ Singleton {
         }
     }
 
+    // Style-aware hover/active fills. One source of truth so every component's hover matches the
+    // active global style instead of re-implementing the angel/inir/aurora/material ternary.
+    readonly property color colLayer1Hover: angelEverywhere ? angel.colGlassCardHover
+        : inirEverywhere ? inir.colLayer1Hover
+        : auroraEverywhere ? aurora.colSubSurfaceHover
+        : colors.colLayer1Hover
+    readonly property color colLayer2Hover: angelEverywhere ? angel.colGlassElevatedHover
+        : inirEverywhere ? inir.colLayer2Hover
+        : auroraEverywhere ? aurora.colElevatedSurfaceHover
+        : colors.colLayer2Hover
+
     onEffectsEnabledChanged: if (Qt.application.arguments.indexOf("--debug") !== -1) console.log("[Appearance] effectsEnabled:", effectsEnabled, "gameModeActive:", _gameModeActive)
     onAnimationsEnabledChanged: if (Qt.application.arguments.indexOf("--debug") !== -1) console.log("[Appearance] animationsEnabled:", animationsEnabled)
 
@@ -536,6 +547,35 @@ Singleton {
             property int duration: root.calcEffectiveDuration(350)
             property int type: Easing.OutExpo
         }
+
+        // Class B: physical, velocity-carrying motion for retargetable props (traveling indicators,
+        // drag-follow, value bars). Gate Behaviors on animationsEnabled. See MORPH_ENGINE_DESIGN.md.
+        property QtObject spatialFollow: QtObject {
+            property real velocity: 1400
+            property Component smoothedAnimation: Component {
+                SmoothedAnimation { velocity: root.animation.spatialFollow.velocity }
+            }
+        }
+        property QtObject spatialFollowFast: QtObject {
+            property real velocity: 2600
+            property Component smoothedAnimation: Component {
+                SmoothedAnimation { velocity: root.animation.spatialFollowFast.velocity }
+            }
+        }
+        property QtObject spatialSpring: QtObject {
+            property real spring: 3.2
+            property real damping: 0.28
+            property real mass: 1.0
+            property real epsilon: 0.25
+            property Component springAnimation: Component {
+                SpringAnimation {
+                    spring: root.animation.spatialSpring.spring
+                    damping: root.animation.spatialSpring.damping
+                    mass: root.animation.spatialSpring.mass
+                    epsilon: root.animation.spatialSpring.epsilon
+                }
+            }
+        }
     }
 
     aurora: QtObject {
@@ -874,7 +914,7 @@ Singleton {
          property real spacingSmall: Math.round(8 * root.fontSizeScale)
          property real spacingMedium: Math.round(12 * root.fontSizeScale)
          property real spacingLarge: Math.round(16 * root.fontSizeScale)
-        property real baseBarHeight: Math.round(40 * root.fontSizeScale)
+        property real baseBarHeight: Math.round(Math.max(24, Math.min(80, (Config.options?.bar?.height ?? 40))) * root.fontSizeScale)
         property real barHeight: (((Config.options?.bar?.cornerStyle ?? 0) === 1) || ((Config.options?.bar?.cornerStyle ?? 0) === 3)) ? 
             (baseBarHeight + root.sizes.hyprlandGapsOut * 2) : baseBarHeight
         property real barCenterSideModuleWidth: (Config.options?.bar?.verbose ?? true) ? Math.round(360 * root.fontSizeScale) : Math.round(140 * root.fontSizeScale)
